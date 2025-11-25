@@ -208,7 +208,26 @@ The service is designed to be deployed on Google Cloud Platform:
 - **Cloud SQL**: Managed PostgreSQL database
 - **Memorystore**: Managed Redis instance
 
-See `cloudbuild.yaml` for CI/CD pipeline configuration.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions and `cloudbuild.yaml` for CI/CD pipeline configuration.
+
+## Documentation
+
+### Quick Start Guides
+
+- [QUICKSTART.md](QUICKSTART.md) - Get started in 5 minutes
+- [TESTING.md](TESTING.md) - Comprehensive testing guide
+- [DEPLOYMENT.md](DEPLOYMENT.md) - Production deployment guide
+- [API_DOCUMENTATION.md](API_DOCUMENTATION.md) - Complete API reference
+
+### Technical Reports
+
+For detailed technical documentation, implementation reports, security audits, and service-specific reports, see the [Reports Center](docs/reports/README.md):
+
+- **Technical Reports**: Architecture, API specs, database schema
+- **Implementation Reports**: Status, milestones, feature completion
+- **Security Audits**: Security reviews and recommendations
+- **Service Reports**: Auth, Theme, and Webhook service documentation
+- **Analysis Reports**: Performance, code coverage, optimization
 
 ## License
 
