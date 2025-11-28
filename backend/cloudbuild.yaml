@@ -1,0 +1,51 @@
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/base-app-service:$SHORT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/base-app-service:latest'
+      - '.'
+
+  # Push the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'gcr.io/$PROJECT_ID/base-app-service'
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'base-app-service'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/base-app-service:$SHORT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--set-env-vars'
+      - 'PORT=8080,ENV=production'
+      - '--set-secrets'
+      - 'JWT_SECRET=jwt-secret:latest,WEBHOOK_SECRET=webhook-secret:latest,DB_PASSWORD=db-password:latest'
+      - '--add-cloudsql-instances'
+      - '${PROJECT_ID}:us-central1:base-app-db'
+      - '--vpc-connector'
+      - 'base-app-vpc-connector'
+
+images:
+  - 'gcr.io/$PROJECT_ID/base-app-service:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/base-app-service:latest'
+
+options:
+  machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '1200s'
+
