@@ -1,0 +1,1 @@
+-- No-op for SQLite: tokens remain TEXT

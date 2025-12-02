@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Dashboard | Base App</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header class="navbar">
+    <div class="brand" id="user-greeting">User Dashboard</div>
+    <div class="nav-actions">
+      <a class="btn btn-ghost" href="/index.html">Home</a>
+      <button class="btn" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="card">
+      <h2>Your Profile</h2>
+      <div id="profile-card" class="grid-2" style="gap:12px;"></div>
+      <div style="margin-top:10px;">
+        <button class="btn" onclick="loadProfile()">Refresh Profile</button>
+        <button class="btn btn-ghost" onclick="downloadMyData()">Download my data</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Account controls</h2>
+      <p style="color:var(--muted); margin-top:-6px;">Download a copy of your data or request deletion (soft delete held 5 days).</p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+        <button class="btn" onclick="downloadMyData()">Download my data</button>
+        <button class="btn" style="background:rgba(239,68,68,0.18); border-color:rgba(239,68,68,0.3);" onclick="deleteMyAccount()">Delete my data</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Access Requests</h2>
+      <div class="grid-2">
+        <div>
+          <label>Title</label>
+          <input id="req-title" placeholder="Access request" />
+        </div>
+        <div>
+          <label>Details</label>
+          <textarea id="req-details" placeholder="Describe what you need"></textarea>
+        </div>
+      </div>
+      <div style="margin-top:10px; display:flex; gap:10px;">
+        <button class="btn" onclick="createRequest()">Submit request</button>
+        <button class="btn btn-ghost" onclick="loadRequests()">Refresh my requests</button>
+      </div>
+      <div id="my-requests" style="margin-top:12px; overflow:auto;"></div>
+    </section>
+  </main>
+
+  <script src="./common.js"></script>
+  <script>
+    if (!ensureToken("userAccessToken", "./user-login.html")) {
+      throw new Error("No user token");
+    }
+
+    async function loadProfile() {
+      try {
+        const res = await api("/v1/users/me", {
+          headers: { Authorization: `Bearer ${getToken("userAccessToken")}` }
+        });
+        renderProfile(res.data);
+        if (res.data && res.data.name) {
+          localStorage.setItem("userInfo", JSON.stringify(res.data));
+          document.getElementById("user-greeting").innerText = `Welcome, ${res.data.name}`;
+        }
+      } catch (err) {
+        toast("Profile load failed: " + err.message);
+      }
+    }
+
+    async function createRequest() {
+      try {
+        await api("/v1/requests", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken("userAccessToken")}`
+          },
+          body: JSON.stringify({
+            title: document.getElementById("req-title").value,
+            details: document.getElementById("req-details").value
+          })
+        });
+        toast("Request submitted");
+        loadRequests();
+      } catch (err) {
+        toast("Error: " + err.message);
+      }
+    }
+
+    async function loadRequests() {
+      try {
+        const res = await api("/v1/requests", {
+          headers: { Authorization: `Bearer ${getToken("userAccessToken")}` }
+        });
+        renderRequests(res.data || []);
+      } catch (err) {
+        document.getElementById("my-requests").innerText = "Error: " + err.message;
+      }
+    }
+
+    async function downloadMyData() {
+      try {
+        const res = await api("/v1/users/me/export", {
+          headers: { Authorization: `Bearer ${getToken("userAccessToken")}` }
+        });
+        const blob = new Blob([JSON.stringify(res.data || {}, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "my-data.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast("Data export downloaded");
+      } catch (err) {
+        toast("Download failed: " + err.message);
+      }
+    }
+
+    async function deleteMyAccount() {
+      const confirmed = confirm("Delete your data? This will sign you out and permanently remove your data after 5 days.");
+      if (!confirmed) return;
+      try {
+        const res = await api("/v1/users/me/delete", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${getToken("userAccessToken")}` }
+        });
+        toast(res.message || "Deletion scheduled. You will be signed out.");
+        setTimeout(() => logout(), 800);
+      } catch (err) {
+        toast("Delete failed: " + err.message);
+      }
+    }
+
+    function logout() {
+      storeToken("userAccessToken", "");
+      window.location.href = "./index.html";
+    }
+
+    // Prefill greeting from stored info
+    const storedUser = JSON.parse(localStorage.getItem("userInfo") || "{}");
+    if (storedUser.name) {
+      document.getElementById("user-greeting").innerText = `Welcome, ${storedUser.name}`;
+    }
+    // auto-load profile on entry
+    loadProfile();
+
+    function renderProfile(data) {
+      const container = document.getElementById("profile-card");
+      if (!data) {
+        container.innerHTML = "<p style='color:var(--muted);'>No profile loaded.</p>";
+        return;
+      }
+      const fields = [
+        ["Name", data.name],
+        ["Email", data.email],
+        ["Status", data.status],
+        ["Phone", data.phone || "-"],
+        ["Created", data.created_at || "-"],
+        ["Updated", data.updated_at || "-"]
+      ];
+      container.innerHTML = fields.map(([k,v]) => `
+        <div class="card" style="background:var(--panel-2); padding:12px;">
+          <div style="color:var(--muted); font-size:12px;">${k}</div>
+          <div style="font-size:16px; margin-top:4px;">${v || "-"}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderRequests(list) {
+      const target = document.getElementById("my-requests");
+      if (!list.length) {
+        target.innerHTML = "<p style='color:var(--muted);'>No requests yet.</p>";
+        return;
+      }
+      const rows = list.map(r => `
+        <tr>
+          <td>${r.title || ""}</td>
+          <td>${r.details || ""}</td>
+          <td><span class="status ${r.status}">${r.status}</span></td>
+          <td>${r.feedback || ""}</td>
+          <td>${r.created_at || ""}</td>
+        </tr>
+      `).join("");
+      target.innerHTML = `
+        <table>
+          <tr><th>Title</th><th>Details</th><th>Status</th><th>Feedback</th><th>Created</th></tr>
+          ${rows}
+        </table>
+      `;
+    }
+  </script>
+</body>
+</html>

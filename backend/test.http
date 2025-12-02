@@ -1,0 +1,98 @@
+@baseUrl = http://localhost:8080
+@userEmail = user{{timestamp}}@example.com
+@userPassword = TestPassword123!
+@adminEmail = admin@gmail.com
+@adminPassword = admin123
+@userAccessToken = 
+@adminAccessToken = 
+@refreshToken = 
+
+### Health check
+GET {{baseUrl}}/health
+
+### User signup
+POST {{baseUrl}}/v1/auth/signup
+Content-Type: application/json
+
+{
+  "email": "{{userEmail}}",
+  "password": "{{userPassword}}",
+  "name": "Sample User",
+  "terms_accepted": true,
+  "terms_version": "1.0"
+}
+
+### User login
+POST {{baseUrl}}/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{userEmail}}",
+  "password": "{{userPassword}}"
+}
+
+### Refresh token
+POST {{baseUrl}}/v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "{{refreshToken}}"
+}
+
+### Get profile
+GET {{baseUrl}}/v1/users/me
+Authorization: Bearer {{userAccessToken}}
+
+### Create access request (user)
+POST {{baseUrl}}/v1/requests
+Authorization: Bearer {{userAccessToken}}
+Content-Type: application/json
+
+{
+  "title": "Need elevated access",
+  "details": "Please approve extra permissions."
+}
+
+### List my requests (user)
+GET {{baseUrl}}/v1/requests
+Authorization: Bearer {{userAccessToken}}
+
+### Admin login
+POST {{baseUrl}}/v1/admin/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+### Admin: list users
+GET {{baseUrl}}/v1/admin/users
+Authorization: Bearer {{adminAccessToken}}
+
+### Admin: disable a user (replace user-id)
+POST {{baseUrl}}/v1/admin/users/{{user-id}}/status
+Authorization: Bearer {{adminAccessToken}}
+Content-Type: application/json
+
+{
+  "status": "disabled"
+}
+
+### Admin: list access requests
+GET {{baseUrl}}/v1/admin/requests
+Authorization: Bearer {{adminAccessToken}}
+
+### Admin: approve a request (replace request-id)
+POST {{baseUrl}}/v1/admin/requests/{{request-id}}/status
+Authorization: Bearer {{adminAccessToken}}
+Content-Type: application/json
+
+{
+  "status": "approved",
+  "feedback": "Approved by admin"
+}
+
+### Admin: activity logs
+GET {{baseUrl}}/v1/admin/logs?limit=50
+Authorization: Bearer {{adminAccessToken}}

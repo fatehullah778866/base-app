@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Base App | Home</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header class="navbar">
+    <div class="brand">Base App Portal</div>
+    <div class="nav-actions">
+      <a class="btn" href="./user-login.html">User</a>
+      <a class="btn" href="./admin-login.html">Admin</a>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="hero card">
+      <h1>Unified access for users and admins</h1>
+      <p>Users can sign up, log in, and submit access requests. Admins manage users, logs, and requests.</p>
+      <div style="display:flex; gap:12px; justify-content:center; margin-top:14px;">
+        <a class="btn" href="./user-signup.html">Start as User</a>
+        <a class="btn" href="./admin-login.html">Go to Admin</a>
+      </div>
+    </section>
+
+    <section class="grid-2">
+      <div class="card">
+        <h2>User flow</h2>
+        <p>Signup/login, view your profile, and submit access requests from the user dashboard.</p>
+        <a class="btn btn-ghost" href="./user-signup.html">User signup</a>
+        <a class="btn btn-ghost" href="./user-login.html">User login</a>
+      </div>
+      <div class="card">
+        <h2>Admin flow</h2>
+        <p>Sign in as admin, then manage users, logs, and incoming access requests.</p>
+        <a class="btn btn-ghost" href="./admin-login.html">Admin login</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

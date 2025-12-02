@@ -1,0 +1,1 @@
+-- No-op for SQLite: tokens are already stored as TEXT in 001_initial_schema.up.sql

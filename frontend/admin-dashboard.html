@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard | Base App</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div id="toast" class="toast"></div>
+  <header class="navbar">
+    <div class="brand">Admin Dashboard</div>
+    <div class="nav-actions">
+      <a class="btn btn-ghost" href="./index.html">Home</a>
+      <button class="btn" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="card" style="display:grid; grid-template-columns: 240px 1fr; gap: 16px;">
+      <aside class="sidebar">
+        <h4>Welcome</h4>
+        <div id="admin-info" style="color: var(--muted); margin-bottom: 10px;">Signed out</div>
+        <ul class="nav-list">
+          <li id="nav-users" class="active" onclick="setView('users')">Total Users</li>
+          <li id="nav-logs" onclick="setView('logs')">Logs</li>
+          <li id="nav-access" onclick="setView('access')">Give Access</li>
+          <li id="nav-requests" onclick="setView('requests')">Requests</li>
+        </ul>
+      </aside>
+      <div class="stack">
+        <div id="view-users" class="card" style="background:var(--panel-2);">
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <input id="search-users" placeholder="Search by email or name" style="max-width:320px;" />
+            <button class="btn" onclick="loadUsers()">Load users</button>
+          </div>
+          <div id="users-table" style="margin-top: 12px; overflow:auto;"></div>
+          <div id="user-detail" class="card" style="margin-top:12px; background:var(--panel-3);">
+            <h4>User info</h4>
+            <div id="user-detail-body" style="color:var(--muted);">Select a user to view details.</div>
+          </div>
+        </div>
+
+        <div id="view-logs" class="card" style="display:none; background:var(--panel-2);">
+          <button class="btn" onclick="loadLogs()">Refresh logs</button>
+          <div id="logs-table" style="margin-top:12px; overflow:auto;"></div>
+        </div>
+
+        <div id="view-access" class="card" style="display:none; background:var(--panel-2);">
+          <h3>Add new admin</h3>
+          <div class="grid-2">
+            <div>
+              <label>Email</label>
+              <input id="new-admin-email" type="email" placeholder="newadmin@example.com" />
+            </div>
+            <div>
+              <label>Name</label>
+              <input id="new-admin-name" placeholder="Admin name" />
+            </div>
+          </div>
+          <div style="margin-top:10px;">
+            <label>Password</label>
+            <input id="new-admin-password" type="password" placeholder="Strong password" />
+          </div>
+          <button class="btn" style="margin-top:10px;" onclick="createAdmin()">Create admin</button>
+          <h4 style="margin-top:16px;">Existing admins</h4>
+          <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+            <input id="search-admins" placeholder="Search admins" style="max-width:260px;" />
+            <button class="btn btn-ghost" onclick="loadAdmins()">Search</button>
+          </div>
+          <div id="admins-table" style="margin-top:8px; overflow:auto;"></div>
+        </div>
+
+        <div id="view-requests" class="card" style="display:none; background:var(--panel-2);">
+          <button class="btn" onclick="loadRequests()">Refresh requests</button>
+          <div id="requests-table" style="margin-top: 12px; overflow:auto;"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="./common.js"></script>
+  <script src="./admin.js"></script>
+</body>
+</html>
