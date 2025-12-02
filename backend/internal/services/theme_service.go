@@ -171,4 +171,3 @@ func (s *ThemeService) GetProductOverride(ctx context.Context, userID uuid.UUID,
 func (s *ThemeService) RemoveProductOverride(ctx context.Context, userID uuid.UUID, productName string) error {
 	return s.themeRepo.DeleteProductOverride(ctx, userID, productName)
 }
-

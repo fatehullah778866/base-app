@@ -160,4 +160,3 @@ func (d *Dispatcher) signPayload(timestamp int64, payload []byte, secret string)
 	mac.Write([]byte(message))
 	return hex.EncodeToString(mac.Sum(nil))
 }
-

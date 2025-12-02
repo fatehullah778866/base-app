@@ -8,7 +8,7 @@ import (
 )
 
 type ErrorResponse struct {
-	Success bool       `json:"success"`
+	Success bool        `json:"success"`
 	Error   ErrorDetail `json:"error"`
 }
 
@@ -76,4 +76,3 @@ func getValidationMessage(fieldError validator.FieldError) string {
 		return fieldError.Field() + " is invalid"
 	}
 }
-

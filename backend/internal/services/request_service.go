@@ -14,8 +14,8 @@ import (
 )
 
 type RequestService struct {
-	repo    repositories.AccessRequestRepository
-	logger  *zap.Logger
+	repo   repositories.AccessRequestRepository
+	logger *zap.Logger
 }
 
 type CreateRequestInput struct {

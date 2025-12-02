@@ -16,4 +16,3 @@ type DeviceRepository interface {
 	Update(ctx context.Context, device *models.Device) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
-

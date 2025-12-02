@@ -15,4 +15,3 @@ type ThemeRepository interface {
 	UpsertProductOverride(ctx context.Context, override *models.ProductThemeOverride) error
 	DeleteProductOverride(ctx context.Context, userID uuid.UUID, productName string) error
 }
-

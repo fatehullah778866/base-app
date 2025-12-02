@@ -121,9 +121,9 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"data": map[string]interface{}{
-			"id":        user.ID.String(),
-			"email":     user.Email,
-			"name":      user.Name,
+			"id":         user.ID.String(),
+			"email":      user.Email,
+			"name":       user.Name,
 			"updated_at": user.UpdatedAt,
 		},
 	})
@@ -154,8 +154,8 @@ func (h *UserHandler) ExportData(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"data": map[string]interface{}{
-			"profile": user,
-			"theme":   theme,
+			"profile":         user,
+			"theme":           theme,
 			"access_requests": requests,
 		},
 	})

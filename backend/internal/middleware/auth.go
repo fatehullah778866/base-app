@@ -104,4 +104,3 @@ func RequireRole(role string, logger *zap.Logger) func(http.Handler) http.Handle
 		})
 	}
 }
-

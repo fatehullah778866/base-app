@@ -15,11 +15,11 @@ import (
 )
 
 type AdminService struct {
-	userRepo     repositories.UserRepository
-	authService  *AuthService
-	logService   *ActivityLogService
-	requestRepo  repositories.AccessRequestRepository
-	logger       *zap.Logger
+	userRepo    repositories.UserRepository
+	authService *AuthService
+	logService  *ActivityLogService
+	requestRepo repositories.AccessRequestRepository
+	logger      *zap.Logger
 }
 
 type AdminLoginRequest struct {
@@ -120,15 +120,15 @@ func (s *AdminService) AddAdmin(ctx context.Context, actorID uuid.UUID, req Crea
 
 	now := time.Now()
 	admin := &models.User{
-		ID:               uuid.New(),
-		Email:            req.Email,
-		PasswordHash:     passwordHash,
-		Name:             req.Name,
-		Status:           "active",
-		Role:             "admin",
+		ID:                uuid.New(),
+		Email:             req.Email,
+		PasswordHash:      passwordHash,
+		Name:              req.Name,
+		Status:            "active",
+		Role:              "admin",
 		PasswordChangedAt: now,
-		CreatedAt:        now,
-		UpdatedAt:        now,
+		CreatedAt:         now,
+		UpdatedAt:         now,
 	}
 
 	if err := s.userRepo.Create(ctx, admin); err != nil {

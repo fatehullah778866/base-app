@@ -22,4 +22,3 @@ type WebhookRepository interface {
 	UpdateSubscription(ctx context.Context, sub *models.WebhookSubscription) error
 	DeleteSubscription(ctx context.Context, id uuid.UUID) error
 }
-

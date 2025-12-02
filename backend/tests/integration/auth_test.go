@@ -205,6 +205,44 @@ func (m *mockUserRepo) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
+// List returns all users (mock implementation) matching an optional search string.
+func (m *mockUserRepo) List(ctx context.Context, search string) ([]*models.User, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	users := make([]*models.User, 0, len(m.users))
+	for _, u := range m.users {
+		copied := *u
+		users = append(users, &copied)
+	}
+	return users, nil
+}
+
+// SetStatus updates the user's status
+func (m *mockUserRepo) SetStatus(ctx context.Context, id uuid.UUID, status string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	user, ok := m.users[id]
+	if !ok {
+		return fmt.Errorf("user not found")
+	}
+	copied := *user
+	copied.Status = status
+	m.users[id] = &copied
+	return nil
+}
+
+// MarkDeleted marks a user as deleted
+func (m *mockUserRepo) MarkDeleted(ctx context.Context, id uuid.UUID) error {
+	return m.SetStatus(ctx, id, "deleted")
+}
+
+// PurgeDeletedBefore is a no-op for the mock
+func (m *mockUserRepo) PurgeDeletedBefore(ctx context.Context, cutoff time.Time) error {
+	return nil
+}
+
 type mockSessionRepo struct {
 	mu           sync.Mutex
 	sessions     map[uuid.UUID]*models.Session

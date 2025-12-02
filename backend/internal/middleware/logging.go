@@ -40,4 +40,3 @@ func LoggingMiddleware(logger *zap.Logger) func(http.Handler) http.Handler {
 		})
 	}
 }
-

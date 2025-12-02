@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 
 	"base-app-service/internal/middleware"
@@ -30,15 +30,15 @@ func NewAuthHandler(authService *services.AuthService, logger *zap.Logger) *Auth
 }
 
 type SignupRequest struct {
-	Email           string  `json:"email" validate:"required,email"`
-	Password        string  `json:"password" validate:"required,min=8"`
-	Name            string  `json:"name" validate:"required"`
-	FirstName       *string `json:"first_name"`
-	LastName        *string `json:"last_name"`
-	Phone           *string `json:"phone"`
-	MarketingConsent bool   `json:"marketing_consent"`
-	TermsAccepted   bool    `json:"terms_accepted" validate:"required"`
-	TermsVersion    string  `json:"terms_version" validate:"required"`
+	Email            string  `json:"email" validate:"required,email"`
+	Password         string  `json:"password" validate:"required,min=8"`
+	Name             string  `json:"name" validate:"required"`
+	FirstName        *string `json:"first_name"`
+	LastName         *string `json:"last_name"`
+	Phone            *string `json:"phone"`
+	MarketingConsent bool    `json:"marketing_consent"`
+	TermsAccepted    bool    `json:"terms_accepted" validate:"required"`
+	TermsVersion     string  `json:"terms_version" validate:"required"`
 }
 
 type LoginRequest struct {
@@ -141,7 +141,7 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 			"session": map[string]interface{}{
 				"token":         session.Token,
 				"refresh_token": *session.RefreshToken,
-				"expires_at":   session.ExpiresAt.Format(time.RFC3339),
+				"expires_at":    session.ExpiresAt.Format(time.RFC3339),
 			},
 		},
 	})
@@ -276,7 +276,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"data": map[string]interface{}{
-			"message":         "Logged out successfully",
+			"message":          "Logged out successfully",
 			"sessions_revoked": 1,
 		},
 	})
@@ -291,7 +291,7 @@ func getIPAddress(r *http.Request) string {
 	if ip == "" {
 		ip = r.RemoteAddr
 	}
-	
+
 	// Remove port from IP address (PostgreSQL INET type doesn't accept ports)
 	// Handle IPv6 addresses like [::1]:57378
 	if idx := strings.LastIndex(ip, "]:"); idx != -1 {
@@ -300,7 +300,7 @@ func getIPAddress(r *http.Request) string {
 		// Handle IPv4 addresses like 127.0.0.1:57378
 		ip = ip[:idx]
 	}
-	
+
 	return ip
 }
 
@@ -309,4 +309,3 @@ func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(data)
 }
-

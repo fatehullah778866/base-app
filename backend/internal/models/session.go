@@ -25,4 +25,3 @@ type Session struct {
 	CreatedAt             time.Time  `db:"created_at" json:"created_at"`
 	LastUsedAt            time.Time  `db:"last_used_at" json:"last_used_at"`
 }
-

@@ -14,13 +14,13 @@ import (
 )
 
 type AuthService struct {
-	userRepo     repositories.UserRepository
-	sessionRepo  repositories.SessionRepository
-	deviceRepo   repositories.DeviceRepository
-	jwtSecret    string
-	accessExpiry time.Duration
+	userRepo      repositories.UserRepository
+	sessionRepo   repositories.SessionRepository
+	deviceRepo    repositories.DeviceRepository
+	jwtSecret     string
+	accessExpiry  time.Duration
 	refreshExpiry time.Duration
-	logger       *zap.Logger
+	logger        *zap.Logger
 }
 
 func NewAuthService(
@@ -56,7 +56,7 @@ type SignupRequest struct {
 	IPAddress        *string
 	UserAgent        *string
 	DeviceID         *string
-	DeviceName        *string
+	DeviceName       *string
 }
 
 type LoginRequest struct {
@@ -85,19 +85,19 @@ func (s *AuthService) Signup(ctx context.Context, req SignupRequest) (*models.Us
 	// Create user
 	now := time.Now()
 	user := &models.User{
-		ID:            uuid.New(),
-		Email:         req.Email,
-		PasswordHash:  passwordHash,
-		Name:          req.Name,
-		FirstName:     req.FirstName,
-		LastName:      req.LastName,
-		Phone:         req.Phone,
-		Status:        "pending",
-		Role:          "user",
-		SignupSource:  req.SignupSource,
+		ID:                uuid.New(),
+		Email:             req.Email,
+		PasswordHash:      passwordHash,
+		Name:              req.Name,
+		FirstName:         req.FirstName,
+		LastName:          req.LastName,
+		Phone:             req.Phone,
+		Status:            "pending",
+		Role:              "user",
+		SignupSource:      req.SignupSource,
 		PasswordChangedAt: now,
-		CreatedAt:     now,
-		UpdatedAt:     now,
+		CreatedAt:         now,
+		UpdatedAt:         now,
 	}
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
@@ -147,13 +147,13 @@ func (s *AuthService) Login(ctx context.Context, req LoginRequest) (*models.User
 		// Create or update device
 		if device == nil {
 			device = &models.Device{
-				ID:          uuid.New(),
-				UserID:      user.ID,
-				DeviceID:    *req.DeviceID,
-				DeviceName:  req.DeviceName,
-				IPAddress:   req.IPAddress,
-				CreatedAt:   now,
-				LastUsedAt:  now,
+				ID:         uuid.New(),
+				UserID:     user.ID,
+				DeviceID:   *req.DeviceID,
+				DeviceName: req.DeviceName,
+				IPAddress:  req.IPAddress,
+				CreatedAt:  now,
+				LastUsedAt: now,
 			}
 			s.deviceRepo.Create(ctx, device)
 		} else {
@@ -273,4 +273,3 @@ func (s *AuthService) Logout(ctx context.Context, sessionID uuid.UUID, revokeAll
 	}
 	return s.sessionRepo.Revoke(ctx, sessionID)
 }
-

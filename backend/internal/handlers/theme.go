@@ -58,13 +58,13 @@ func (h *ThemeHandler) GetTheme(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"data": map[string]interface{}{
-			"theme":           theme.Theme,
-			"contrast":        theme.Contrast,
-			"text_direction": theme.TextDirection,
-			"brand":           theme.Brand,
-			"source":          source,
+			"theme":            theme.Theme,
+			"contrast":         theme.Contrast,
+			"text_direction":   theme.TextDirection,
+			"brand":            theme.Brand,
+			"source":           source,
 			"product_override": productOverride,
-			"synced_at":       theme.SyncedAt.Format(time.RFC3339),
+			"synced_at":        theme.SyncedAt.Format(time.RFC3339),
 			"localStorage_keys": map[string]string{
 				"theme":          "kompassui-theme",
 				"contrast":       "kompassui-contrast",
@@ -127,11 +127,11 @@ func (h *ThemeHandler) SyncTheme(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Theme         string  `json:"theme"`
-		Contrast      string  `json:"contrast"`
-		TextDirection string  `json:"text_direction"`
-		Brand         *string `json:"brand"`
-		ClientTimestamp string `json:"client_timestamp"`
+		Theme           string  `json:"theme"`
+		Contrast        string  `json:"contrast"`
+		TextDirection   string  `json:"text_direction"`
+		Brand           *string `json:"brand"`
+		ClientTimestamp string  `json:"client_timestamp"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -170,4 +170,3 @@ func (h *ThemeHandler) SyncTheme(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 }
-

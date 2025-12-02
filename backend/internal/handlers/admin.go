@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gorilla/mux"
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
 	"base-app-service/internal/middleware"
@@ -28,8 +28,8 @@ func NewAdminHandler(adminService *services.AdminService, logger *zap.Logger) *A
 }
 
 type adminLoginRequest struct {
-	Email      string `json:"email"`
-	Password   string `json:"password"`
+	Email      string  `json:"email"`
+	Password   string  `json:"password"`
 	DeviceID   *string `json:"device_id"`
 	DeviceName *string `json:"device_name"`
 }

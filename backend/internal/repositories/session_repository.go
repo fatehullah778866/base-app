@@ -17,4 +17,3 @@ type SessionRepository interface {
 	Revoke(ctx context.Context, id uuid.UUID) error
 	RevokeAllForUser(ctx context.Context, userID uuid.UUID) error
 }
-

@@ -19,4 +19,3 @@ func CORSMiddleware() func(http.Handler) http.Handler {
 		})
 	}
 }
-

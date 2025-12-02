@@ -29,4 +29,3 @@ func (s *UserService) GetUser(ctx context.Context, userID uuid.UUID) (*models.Us
 func (s *UserService) UpdateUser(ctx context.Context, user *models.User) error {
 	return s.userRepo.Update(ctx, user)
 }
-
