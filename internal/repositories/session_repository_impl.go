@@ -1,0 +1,155 @@
+package repositories
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+
+	"github.com/google/uuid"
+
+	"base-app-service/internal/database"
+	"base-app-service/internal/models"
+)
+
+type sessionRepository struct {
+	db *database.DB
+}
+
+func NewSessionRepository(db *database.DB) SessionRepository {
+	return &sessionRepository{db: db}
+}
+
+func (r *sessionRepository) Create(ctx context.Context, session *models.Session) error {
+	query := `
+		INSERT INTO sessions (
+			id, user_id, token, refresh_token, refresh_token_expires_at,
+			device_id, device_name, ip_address, is_active, expires_at,
+			created_at, last_used_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+	`
+
+	_, err := r.db.DB.ExecContext(ctx, query,
+		session.ID, session.UserID, session.Token, session.RefreshToken,
+		session.RefreshTokenExpiresAt, session.DeviceID, session.DeviceName,
+		session.IPAddress, session.IsActive, session.ExpiresAt,
+		session.CreatedAt, session.LastUsedAt,
+	)
+
+	return err
+}
+
+func (r *sessionRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Session, error) {
+	query := `
+		SELECT id, user_id, token, refresh_token, refresh_token_expires_at,
+			device_id, device_type, device_name, os, browser, ip_address,
+			location_country, location_city, is_active, expires_at,
+			created_at, last_used_at
+		FROM sessions
+		WHERE id = $1 AND is_active = true
+	`
+
+	session := &models.Session{}
+	err := r.db.DB.QueryRowContext(ctx, query, id).Scan(
+		&session.ID, &session.UserID, &session.Token, &session.RefreshToken,
+		&session.RefreshTokenExpiresAt, &session.DeviceID, &session.DeviceType,
+		&session.DeviceName, &session.OS, &session.Browser, &session.IPAddress,
+		&session.LocationCountry, &session.LocationCity, &session.IsActive,
+		&session.ExpiresAt, &session.CreatedAt, &session.LastUsedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("session not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return session, nil
+}
+
+func (r *sessionRepository) GetByToken(ctx context.Context, token string) (*models.Session, error) {
+	query := `
+		SELECT id, user_id, token, refresh_token, refresh_token_expires_at,
+			device_id, device_type, device_name, os, browser, ip_address,
+			location_country, location_city, is_active, expires_at,
+			created_at, last_used_at
+		FROM sessions
+		WHERE token = $1 AND is_active = true
+	`
+
+	session := &models.Session{}
+	err := r.db.DB.QueryRowContext(ctx, query, token).Scan(
+		&session.ID, &session.UserID, &session.Token, &session.RefreshToken,
+		&session.RefreshTokenExpiresAt, &session.DeviceID, &session.DeviceType,
+		&session.DeviceName, &session.OS, &session.Browser, &session.IPAddress,
+		&session.LocationCountry, &session.LocationCity, &session.IsActive,
+		&session.ExpiresAt, &session.CreatedAt, &session.LastUsedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("session not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return session, nil
+}
+
+func (r *sessionRepository) GetByRefreshToken(ctx context.Context, refreshToken string) (*models.Session, error) {
+	query := `
+		SELECT id, user_id, token, refresh_token, refresh_token_expires_at,
+			device_id, device_type, device_name, os, browser, ip_address,
+			location_country, location_city, is_active, expires_at,
+			created_at, last_used_at
+		FROM sessions
+		WHERE refresh_token = $1 AND is_active = true
+	`
+
+	session := &models.Session{}
+	err := r.db.DB.QueryRowContext(ctx, query, refreshToken).Scan(
+		&session.ID, &session.UserID, &session.Token, &session.RefreshToken,
+		&session.RefreshTokenExpiresAt, &session.DeviceID, &session.DeviceType,
+		&session.DeviceName, &session.OS, &session.Browser, &session.IPAddress,
+		&session.LocationCountry, &session.LocationCity, &session.IsActive,
+		&session.ExpiresAt, &session.CreatedAt, &session.LastUsedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("session not found")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return session, nil
+}
+
+func (r *sessionRepository) Update(ctx context.Context, session *models.Session) error {
+	query := `
+		UPDATE sessions
+		SET token = $2, refresh_token = $3, refresh_token_expires_at = $4,
+			expires_at = $5, last_used_at = $6
+		WHERE id = $1
+	`
+
+	_, err := r.db.DB.ExecContext(ctx, query,
+		session.ID, session.Token, session.RefreshToken,
+		session.RefreshTokenExpiresAt, session.ExpiresAt, session.LastUsedAt,
+	)
+
+	return err
+}
+
+func (r *sessionRepository) Revoke(ctx context.Context, id uuid.UUID) error {
+	query := `UPDATE sessions SET is_active = false, revoked_at = NOW() WHERE id = $1`
+	_, err := r.db.DB.ExecContext(ctx, query, id)
+	return err
+}
+
+func (r *sessionRepository) RevokeAllForUser(ctx context.Context, userID uuid.UUID) error {
+	query := `UPDATE sessions SET is_active = false, revoked_at = NOW() WHERE user_id = $1 AND is_active = true`
+	_, err := r.db.DB.ExecContext(ctx, query, userID)
+	return err
+}
+
