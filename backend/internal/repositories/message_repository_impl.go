@@ -147,6 +147,67 @@ func (r *messageRepository) GetByConversation(ctx context.Context, conversationI
 	return messages, rows.Err()
 }
 
+func (r *messageRepository) GetConversations(ctx context.Context, userID uuid.UUID) ([]*models.Conversation, error) {
+	return r.GetConversationsByUserID(ctx, userID)
+}
+
+func (r *messageRepository) GetMessages(ctx context.Context, conversationID uuid.UUID, userID uuid.UUID, limit int, offset int) ([]*models.Message, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	// Simplified: Get messages where user is involved
+	simpleQuery := `SELECT id, sender_id, recipient_id, subject, content, is_read, read_at, is_archived, archived_at, metadata, created_at, updated_at
+		FROM messages
+		WHERE (sender_id = ? OR recipient_id = ?)
+		ORDER BY created_at DESC
+		LIMIT ? OFFSET ?`
+
+	rows, err := r.db.QueryContext(ctx, simpleQuery, userID.String(), userID.String(), limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var messages []*models.Message
+	for rows.Next() {
+		var m models.Message
+		var senderIDStr, recipientIDStr, idStr string
+		var subject, metadata sql.NullString
+		var readAt, archivedAt sql.NullTime
+
+		err := rows.Scan(&idStr, &senderIDStr, &recipientIDStr, &subject, &m.Content,
+			&m.IsRead, &readAt, &m.IsArchived, &archivedAt, &metadata,
+			&m.CreatedAt, &m.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+
+		m.ID, _ = uuid.Parse(idStr)
+		m.SenderID, _ = uuid.Parse(senderIDStr)
+		m.RecipientID, _ = uuid.Parse(recipientIDStr)
+		if subject.Valid {
+			m.Subject = &subject.String
+		}
+		if readAt.Valid {
+			m.ReadAt = &readAt.Time
+		}
+		if archivedAt.Valid {
+			m.ArchivedAt = &archivedAt.Time
+		}
+		if metadata.Valid {
+			m.Metadata = &metadata.String
+		}
+
+		messages = append(messages, &m)
+	}
+
+	return messages, rows.Err()
+}
+
 func (r *messageRepository) GetConversationsByUserID(ctx context.Context, userID uuid.UUID) ([]*models.Conversation, error) {
 	query := `SELECT id, participant1_id, participant2_id, last_message_id, last_message_at,
 		participant1_unread_count, participant2_unread_count, created_at, updated_at

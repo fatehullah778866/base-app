@@ -12,7 +12,9 @@ type MessageRepository interface {
 	Create(ctx context.Context, message *models.Message) error
 	GetByID(ctx context.Context, id uuid.UUID) (*models.Message, error)
 	GetByConversation(ctx context.Context, conversationID uuid.UUID, limit int) ([]*models.Message, error)
+	GetConversations(ctx context.Context, userID uuid.UUID) ([]*models.Conversation, error)
 	GetConversationsByUserID(ctx context.Context, userID uuid.UUID) ([]*models.Conversation, error)
+	GetMessages(ctx context.Context, conversationID uuid.UUID, userID uuid.UUID, limit int, offset int) ([]*models.Message, error)
 	GetOrCreateConversation(ctx context.Context, user1ID, user2ID uuid.UUID) (*models.Conversation, error)
 	MarkAsRead(ctx context.Context, id uuid.UUID) error
 	MarkAsArchived(ctx context.Context, id uuid.UUID) error

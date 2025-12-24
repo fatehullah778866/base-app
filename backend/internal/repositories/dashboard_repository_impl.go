@@ -86,6 +86,62 @@ func (r *dashboardRepository) GetByID(ctx context.Context, id uuid.UUID) (*model
 	return &item, nil
 }
 
+func (r *dashboardRepository) ListItems(ctx context.Context, userID uuid.UUID, limit int, offset int) ([]*models.DashboardItem, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	query := `
+		SELECT id, user_id, title, description, category, status, priority, metadata, created_at, updated_at, deleted_at
+		FROM dashboard_items
+		WHERE user_id = ? AND deleted_at IS NULL
+		ORDER BY priority DESC, created_at DESC
+		LIMIT ? OFFSET ?
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, userID.String(), limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []*models.DashboardItem
+	for rows.Next() {
+		var item models.DashboardItem
+		var userIDStr, idStr string
+		var description, category, metadata sql.NullString
+		var deletedAt sql.NullTime
+
+		err := rows.Scan(&idStr, &userIDStr, &item.Title, &description, &category,
+			&item.Status, &item.Priority, &metadata, &item.CreatedAt, &item.UpdatedAt, &deletedAt)
+		if err != nil {
+			return nil, err
+		}
+
+		item.ID, _ = uuid.Parse(idStr)
+		item.UserID, _ = uuid.Parse(userIDStr)
+		if description.Valid {
+			item.Description = &description.String
+		}
+		if category.Valid {
+			item.Category = &category.String
+		}
+		if metadata.Valid {
+			item.Metadata = &metadata.String
+		}
+		if deletedAt.Valid {
+			item.DeletedAt = &deletedAt.Time
+		}
+
+		items = append(items, &item)
+	}
+
+	return items, rows.Err()
+}
+
 func (r *dashboardRepository) GetByUserID(ctx context.Context, userID uuid.UUID, status string) ([]*models.DashboardItem, error) {
 	var items []*models.DashboardItem
 	var query string

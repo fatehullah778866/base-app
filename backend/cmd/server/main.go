@@ -113,7 +113,15 @@ func main() {
 	notificationService := services.NewNotificationService(notificationRepo, logger)
 	messagingService := services.NewMessagingService(messageRepo, userRepo, logger)
 	accountSwitchService := services.NewAccountSwitchService(accountSwitchRepo, userRepo, logger)
-	searchService := services.NewSearchService(searchRepo, logger)
+	searchService := services.NewSearchService(
+		searchRepo,
+		dashboardRepo,
+		messageRepo,
+		notificationRepo,
+		customCRUDRepo,
+		userRepo,
+		logger,
+	)
 	adminSettingsService := services.NewAdminSettingsService(adminSettingsRepo, logger)
 	customCRUDService := services.NewCustomCRUDService(customCRUDRepo, logger)
 	
@@ -259,7 +267,9 @@ func main() {
 	protected.HandleFunc("/account/switch/history", accountSwitchHandler.GetSwitchHistory).Methods("GET")
 	
 	// Search routes
-	protected.HandleFunc("/search", searchHandler.Search).Methods("GET")
+	protected.HandleFunc("/search", searchHandler.Search).Methods("GET", "POST")
+	protected.HandleFunc("/search/history", searchHandler.GetSearchHistory).Methods("GET")
+	protected.HandleFunc("/search/history", searchHandler.ClearSearchHistory).Methods("DELETE")
 	
 	// File upload routes
 	protected.HandleFunc("/files/upload/image", fileUploadHandler.UploadImage).Methods("POST")
