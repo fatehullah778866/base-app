@@ -1,0 +1,192 @@
+openapi: 3.0.0
+info:
+  title: Base App API
+  description: Production-ready Go backend service for user authentication, account management, and theme preferences
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@baseapp.com
+
+servers:
+  - url: http://localhost:8080/v1
+    description: Local development server
+  - url: https://api.baseapp.com/v1
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication endpoints
+  - name: Users
+    description: User management endpoints
+  - name: Settings
+    description: User settings management
+  - name: Dashboard
+    description: Dashboard CRUD operations
+  - name: Notifications
+    description: Notification system
+  - name: Messaging
+    description: User messaging system
+  - name: Admin
+    description: Admin-only endpoints
+
+paths:
+  /auth/signup:
+    post:
+      tags: [Authentication]
+      summary: User registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, name, terms_accepted, terms_version]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                name:
+                  type: string
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                phone:
+                  type: string
+                terms_accepted:
+                  type: boolean
+                terms_version:
+                  type: string
+      responses:
+        '201':
+          description: User created successfully
+        '400':
+          description: Invalid request
+        '409':
+          description: Email already exists
+
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                remember_me:
+                  type: boolean
+      responses:
+        '200':
+          description: Login successful
+        '401':
+          description: Invalid credentials
+
+  /auth/forgot-password:
+    post:
+      tags: [Authentication]
+      summary: Request password reset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Password reset email sent (if account exists)
+
+  /auth/reset-password:
+    post:
+      tags: [Authentication]
+      summary: Reset password with token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, new_password]
+              properties:
+                token:
+                  type: string
+                new_password:
+                  type: string
+                  minLength: 8
+      responses:
+        '200':
+          description: Password reset successful
+        '400':
+          description: Invalid or expired token
+
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Get current user profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile
+        '401':
+          description: Unauthorized
+
+  /users/me/settings:
+    get:
+      tags: [Settings]
+      summary: Get all user settings
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Settings retrieved
+
+  /dashboard/items:
+    post:
+      tags: [Dashboard]
+      summary: Create dashboard item
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                category:
+                  type: string
+                priority:
+                  type: integer
+      responses:
+        '201':
+          description: Item created
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+

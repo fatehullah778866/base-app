@@ -125,6 +125,42 @@ func (r *sessionRepository) GetByRefreshToken(ctx context.Context, refreshToken 
 	return session, nil
 }
 
+func (r *sessionRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*models.Session, error) {
+	query := `
+		SELECT id, user_id, token, refresh_token, refresh_token_expires_at,
+			device_id, device_type, device_name, os, browser, ip_address,
+			location_country, location_city, is_active, expires_at,
+			created_at, last_used_at
+		FROM sessions
+		WHERE user_id = ? AND is_active = 1
+		ORDER BY last_used_at DESC
+	`
+
+	rows, err := r.db.DB.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var sessions []*models.Session
+	for rows.Next() {
+		session := &models.Session{}
+		err := rows.Scan(
+			&session.ID, &session.UserID, &session.Token, &session.RefreshToken,
+			&session.RefreshTokenExpiresAt, &session.DeviceID, &session.DeviceType,
+			&session.DeviceName, &session.OS, &session.Browser, &session.IPAddress,
+			&session.LocationCountry, &session.LocationCity, &session.IsActive,
+			&session.ExpiresAt, &session.CreatedAt, &session.LastUsedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		sessions = append(sessions, session)
+	}
+
+	return sessions, rows.Err()
+}
+
 func (r *sessionRepository) Update(ctx context.Context, session *models.Session) error {
 	query := `
 		UPDATE sessions

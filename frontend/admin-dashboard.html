@@ -1,85 +1,177 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Dashboard | Base App</title>
-  <link rel="stylesheet" href="./style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Base App</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div id="toast" class="toast"></div>
-  <header class="navbar">
-    <div class="brand">Admin Dashboard</div>
-    <div class="nav-actions">
-      <a class="btn btn-ghost" href="./index.html">Home</a>
-      <button class="btn" onclick="logout()">Logout</button>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="logo">Base App - Admin</h1>
+            <div class="nav-menu">
+                <a href="dashboard.html" class="nav-link">User Dashboard</a>
+                <a href="#messages-section" class="nav-link">Messages</a>
+                <div class="nav-actions">
+                    <button class="icon-button" id="messages-button" type="button" title="Messages">
+                        <span class="nav-icon">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M21 6.5c0-1.4-1.1-2.5-2.5-2.5h-13C4.1 4 3 5.1 3 6.5v7C3 14.9 4.1 16 5.5 16H7v3l4-3h7.5c1.4 0 2.5-1.1 2.5-2.5v-7z"></path>
+                            </svg>
+                        </span>
+                        <span class="icon-badge" id="messages-badge"></span>
+                    </button>
+                    <div class="nav-notifications">
+                        <button class="icon-button" id="notifications-button" type="button" title="Notifications">
+                            <span class="nav-icon">
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M12 22a2.5 2.5 0 0 0 2.4-2H9.6A2.5 2.5 0 0 0 12 22zm6-6V11c0-3.3-2.1-6.1-5-7V3a1 1 0 1 0-2 0v1c-2.9.9-5 3.7-5 7v5l-2 2v1h16v-1l-2-2z"></path>
+                                </svg>
+                            </span>
+                            <span class="icon-badge" id="notifications-badge"></span>
+                        </button>
+                        <div class="dropdown-menu notifications-menu" id="notifications-menu">
+                            <div class="notifications-header">
+                                <span>Notifications</span>
+                                <button class="text-button" id="mark-notifications-read">Mark all read</button>
+                            </div>
+                            <div id="notifications-list" class="notifications-list">
+                                <div class="muted-text">No notifications.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <span class="user-name" id="admin-name"></span>
+                <div class="profile-dropdown">
+                    <img src="" alt="Avatar" class="profile-icon" id="admin-icon">
+                    <div class="dropdown-menu" id="admin-dropdown">
+                        <a href="settings.html">Settings</a>
+                        <a href="#" id="admin-logout-link">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <div class="page-header">
+            <h2>Admin Dashboard</h2>
+            <button class="btn btn-primary" id="add-user-btn">+ Add User</button>
+        </div>
+
+        <div id="message" class="message"></div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Users</h3>
+                <p id="total-users">-</p>
+            </div>
+            <div class="stat-card">
+                <h3>Active Users</h3>
+                <p id="active-users">-</p>
+            </div>
+            <div class="stat-card">
+                <h3>Admins</h3>
+                <p id="total-admins">-</p>
+            </div>
+        </div>
+
+        <!-- Users List -->
+        <div class="section">
+            <h3>Users</h3>
+            <input type="text" id="user-search" placeholder="Search users..." class="search-input">
+            <div id="users-list" class="table-container">
+                <div class="loading">Loading...</div>
+            </div>
+        </div>
+
+        <!-- Admin Settings -->
+        <div class="section">
+            <h3>Admin Settings</h3>
+            <div class="form-group">
+                <label>Verification Code</label>
+                <input type="password" id="verification-code-setting" placeholder="Kompasstech2025@">
+            </div>
+            <button class="btn btn-primary" id="save-verification-code-btn">Save Verification Code</button>
+        </div>
+
+        <div class="section" id="messages-section">
+            <div class="messages-header">
+                <h3>Messages</h3>
+            </div>
+            <div class="messages-layout">
+                <div class="messages-sidebar">
+                    <div class="message-search">
+                        <input type="text" id="message-search-input" placeholder="Search users...">
+                        <button class="btn btn-secondary" id="message-search-btn" type="button">Search</button>
+                    </div>
+                    <div id="message-search-results" class="messages-list"></div>
+                    <h4 class="messages-subtitle">Conversations</h4>
+                    <div id="conversation-list" class="messages-list">
+                        <div class="muted-text">No conversations yet.</div>
+                    </div>
+                </div>
+                <div class="messages-thread">
+                    <div id="message-thread" class="message-thread">
+                        <div class="muted-text">Select a conversation to view messages.</div>
+                    </div>
+                    <form id="message-form" class="message-form">
+                        <input type="hidden" id="message-recipient-id">
+                        <textarea id="message-content" rows="3" placeholder="Write a message..." required></textarea>
+                        <button type="submit" class="btn btn-primary">Send</button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
-  </header>
 
-  <main class="layout">
-    <section class="card" style="display:grid; grid-template-columns: 240px 1fr; gap: 16px;">
-      <aside class="sidebar">
-        <h4>Welcome</h4>
-        <div id="admin-info" style="color: var(--muted); margin-bottom: 10px;">Signed out</div>
-        <ul class="nav-list">
-          <li id="nav-users" class="active" onclick="setView('users')">Total Users</li>
-          <li id="nav-logs" onclick="setView('logs')">Logs</li>
-          <li id="nav-access" onclick="setView('access')">Give Access</li>
-          <li id="nav-requests" onclick="setView('requests')">Requests</li>
-        </ul>
-      </aside>
-      <div class="stack">
-        <div id="view-users" class="card" style="background:var(--panel-2);">
-          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-            <input id="search-users" placeholder="Search by email or name" style="max-width:320px;" />
-            <button class="btn" onclick="loadUsers()">Load users</button>
-          </div>
-          <div id="users-table" style="margin-top: 12px; overflow:auto;"></div>
-          <div id="user-detail" class="card" style="margin-top:12px; background:var(--panel-3);">
-            <h4>User info</h4>
-            <div id="user-detail-body" style="color:var(--muted);">Select a user to view details.</div>
-          </div>
+    <!-- Add/Edit User Modal -->
+    <div id="user-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modal-title">Add User</h2>
+            <form id="user-form">
+                <input type="hidden" id="user-id">
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="user-email" required>
+                </div>
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" id="user-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="user-password">
+                </div>
+                <div class="form-group">
+                    <label>Role</label>
+                    <select id="user-role">
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="user-status">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-user-btn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
         </div>
+    </div>
 
-        <div id="view-logs" class="card" style="display:none; background:var(--panel-2);">
-          <button class="btn" onclick="loadLogs()">Refresh logs</button>
-          <div id="logs-table" style="margin-top:12px; overflow:auto;"></div>
-        </div>
-
-        <div id="view-access" class="card" style="display:none; background:var(--panel-2);">
-          <h3>Add new admin</h3>
-          <div class="grid-2">
-            <div>
-              <label>Email</label>
-              <input id="new-admin-email" type="email" placeholder="newadmin@example.com" />
-            </div>
-            <div>
-              <label>Name</label>
-              <input id="new-admin-name" placeholder="Admin name" />
-            </div>
-          </div>
-          <div style="margin-top:10px;">
-            <label>Password</label>
-            <input id="new-admin-password" type="password" placeholder="Strong password" />
-          </div>
-          <button class="btn" style="margin-top:10px;" onclick="createAdmin()">Create admin</button>
-          <h4 style="margin-top:16px;">Existing admins</h4>
-          <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
-            <input id="search-admins" placeholder="Search admins" style="max-width:260px;" />
-            <button class="btn btn-ghost" onclick="loadAdmins()">Search</button>
-          </div>
-          <div id="admins-table" style="margin-top:8px; overflow:auto;"></div>
-        </div>
-
-        <div id="view-requests" class="card" style="display:none; background:var(--panel-2);">
-          <button class="btn" onclick="loadRequests()">Refresh requests</button>
-          <div id="requests-table" style="margin-top: 12px; overflow:auto;"></div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <script src="./common.js"></script>
-  <script src="./admin.js"></script>
+    <script src="config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/admin.js"></script>
 </body>
 </html>

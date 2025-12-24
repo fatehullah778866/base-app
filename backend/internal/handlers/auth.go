@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -18,14 +19,18 @@ import (
 var validate = validator.New()
 
 type AuthHandler struct {
-	authService *services.AuthService
-	logger      *zap.Logger
+	authService         *services.AuthService
+	passwordResetService *services.PasswordResetService
+	emailService        *services.EmailService
+	logger              *zap.Logger
 }
 
-func NewAuthHandler(authService *services.AuthService, logger *zap.Logger) *AuthHandler {
+func NewAuthHandler(authService *services.AuthService, passwordResetService *services.PasswordResetService, emailService *services.EmailService, logger *zap.Logger) *AuthHandler {
 	return &AuthHandler{
-		authService: authService,
-		logger:      logger,
+		authService:          authService,
+		passwordResetService: passwordResetService,
+		emailService:        emailService,
+		logger:              logger,
 	}
 }
 
@@ -137,6 +142,7 @@ func (h *AuthHandler) Signup(w http.ResponseWriter, r *http.Request) {
 				"name":           user.Name,
 				"email_verified": user.EmailVerified,
 				"status":         user.Status,
+				"role":           user.Role,
 			},
 			"session": map[string]interface{}{
 				"token":         session.Token,
@@ -217,6 +223,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 				"name":           user.Name,
 				"email_verified": user.EmailVerified,
 				"status":         user.Status,
+				"role":           user.Role,
 			},
 			"session": map[string]interface{}{
 				"id":            session.ID.String(),
@@ -247,11 +254,18 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	refreshTokenValue := ""
+	if session.RefreshToken != nil {
+		refreshTokenValue = *session.RefreshToken
+	}
+	
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"data": map[string]interface{}{
-			"token":      session.Token,
-			"expires_at": session.ExpiresAt.Format(time.RFC3339),
+			"access_token":  session.Token,
+			"token":         session.Token,
+			"refresh_token": refreshTokenValue,
+			"expires_at":    session.ExpiresAt.Format(time.RFC3339),
 		},
 	})
 }
@@ -279,6 +293,72 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 			"message":          "Logged out successfully",
 			"sessions_revoked": 1,
 		},
+	})
+}
+
+func (h *AuthHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Email string `json:"email" validate:"required,email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		errors.RespondError(w, http.StatusBadRequest, "INVALID_REQUEST", err.Error())
+		return
+	}
+
+	if err := validate.Struct(req); err != nil {
+		errors.RespondValidationError(w, err)
+		return
+	}
+
+	// Request password reset (always returns success for security)
+	token, err := h.passwordResetService.RequestPasswordReset(r.Context(), req.Email)
+	if err != nil {
+		h.logger.Warn("Password reset request failed", zap.Error(err))
+	} else if token != "" {
+		// Send email with reset link
+		resetURL := fmt.Sprintf("%s/reset-password", r.Header.Get("Origin"))
+		if resetURL == "/reset-password" {
+			resetURL = "http://localhost:8080/reset-password" // Fallback
+		}
+		if err := h.emailService.SendPasswordResetEmail(r.Context(), req.Email, token, resetURL); err != nil {
+			h.logger.Error("Failed to send password reset email", zap.Error(err))
+		}
+	}
+
+	// Always return success to prevent email enumeration
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": "If an account exists with this email, a password reset link has been sent",
+	})
+}
+
+func (h *AuthHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Token       string `json:"token" validate:"required"`
+		NewPassword string `json:"new_password" validate:"required,min=8"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		errors.RespondError(w, http.StatusBadRequest, "INVALID_REQUEST", err.Error())
+		return
+	}
+
+	if err := validate.Struct(req); err != nil {
+		errors.RespondValidationError(w, err)
+		return
+	}
+
+	if err := h.passwordResetService.ResetPassword(r.Context(), req.Token, req.NewPassword); err != nil {
+		if err.Error() == "invalid or expired reset token" || err.Error() == "reset token has already been used" {
+			errors.RespondError(w, http.StatusBadRequest, "INVALID_TOKEN", err.Error())
+			return
+		}
+		errors.RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": "Password has been reset successfully",
 	})
 }
 

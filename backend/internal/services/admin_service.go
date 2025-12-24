@@ -140,6 +140,60 @@ func (s *AdminService) AddAdmin(ctx context.Context, actorID uuid.UUID, req Crea
 	return admin, nil
 }
 
+type CreateUserRequest struct {
+	Email    string
+	Name     string
+	Password string
+	Role     string
+	Status   string
+}
+
+func (s *AdminService) CreateUser(ctx context.Context, actorID uuid.UUID, req CreateUserRequest) (*models.User, error) {
+	existing, _ := s.userRepo.GetByEmail(ctx, req.Email)
+	if existing != nil {
+		return nil, errors.New("user already exists")
+	}
+
+	passwordHash, err := auth.HashPassword(req.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.Status == "" {
+		req.Status = "active"
+	}
+	if req.Role == "" {
+		req.Role = "user"
+	}
+
+	now := time.Now()
+	user := &models.User{
+		ID:                uuid.New(),
+		Email:             req.Email,
+		PasswordHash:      passwordHash,
+		Name:              req.Name,
+		Status:            req.Status,
+		Role:              req.Role,
+		PasswordChangedAt: now,
+		CreatedAt:         now,
+		UpdatedAt:         now,
+	}
+
+	if err := s.userRepo.Create(ctx, user); err != nil {
+		return nil, err
+	}
+
+	// Only log if actorID is valid (not nil)
+	if actorID != uuid.Nil {
+		s.logService.Record(ctx, &actorID, "admin", "user_created", strPtr("user"), strPtr(user.ID.String()), nil)
+	} else {
+		// Log as system action for public admin creation
+		s.logService.Record(ctx, nil, "system", "admin_created_public", strPtr("admin"), strPtr(user.ID.String()), nil)
+	}
+
+	return user, nil
+}
+
 func (s *AdminService) ListUsers(ctx context.Context, search string) ([]*models.User, error) {
 	return s.userRepo.List(ctx, search)
 }

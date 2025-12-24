@@ -109,6 +109,17 @@ func (r *userRepository) Update(ctx context.Context, user *models.User) error {
 	return err
 }
 
+func (r *userRepository) UpdatePassword(ctx context.Context, userID uuid.UUID, passwordHash string, changedAt time.Time) error {
+	query := `
+		UPDATE users
+		SET password_hash = ?, password_changed_at = ?, updated_at = ?
+		WHERE id = ?
+	`
+
+	_, err := r.db.DB.ExecContext(ctx, query, passwordHash, changedAt, time.Now(), userID)
+	return err
+}
+
 func (r *userRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	query := `UPDATE users SET status = 'deleted', updated_at = CURRENT_TIMESTAMP WHERE id = ?`
 	_, err := r.db.DB.ExecContext(ctx, query, id)

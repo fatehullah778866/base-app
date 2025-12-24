@@ -14,6 +14,7 @@ type UserRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	Update(ctx context.Context, user *models.User) error
+	UpdatePassword(ctx context.Context, userID uuid.UUID, passwordHash string, changedAt time.Time) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	List(ctx context.Context, search string) ([]*models.User, error)
 	SetStatus(ctx context.Context, id uuid.UUID, status string) error

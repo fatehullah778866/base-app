@@ -9,6 +9,7 @@ import (
 
 	"base-app-service/internal/middleware"
 	"base-app-service/internal/repositories"
+	"base-app-service/pkg/auth"
 	"base-app-service/pkg/errors"
 )
 
@@ -62,6 +63,7 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 			"phone":          user.Phone,
 			"phone_verified": user.PhoneVerified,
 			"status":         user.Status,
+			"role":           user.Role,
 			"created_at":     user.CreatedAt,
 			"updated_at":     user.UpdatedAt,
 		},
@@ -126,6 +128,56 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 			"name":       user.Name,
 			"updated_at": user.UpdatedAt,
 		},
+	})
+}
+
+func (h *UserHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.GetUserIDFromContext(r.Context())
+	if userID.String() == "00000000-0000-0000-0000-000000000000" {
+		errors.RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Invalid user ID")
+		return
+	}
+
+	user, err := h.userRepo.GetByID(r.Context(), userID)
+	if err != nil {
+		errors.RespondError(w, http.StatusNotFound, "NOT_FOUND", "User not found")
+		return
+	}
+
+	var req struct {
+		CurrentPassword string `json:"current_password"`
+		NewPassword     string `json:"new_password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		errors.RespondError(w, http.StatusBadRequest, "INVALID_REQUEST", err.Error())
+		return
+	}
+
+	if req.CurrentPassword == "" || req.NewPassword == "" {
+		errors.RespondError(w, http.StatusBadRequest, "INVALID_REQUEST", "Both current and new password are required")
+		return
+	}
+
+	if !auth.CheckPasswordHash(req.CurrentPassword, user.PasswordHash) {
+		errors.RespondError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Current password is incorrect")
+		return
+	}
+
+	newHash, err := auth.HashPassword(req.NewPassword)
+	if err != nil {
+		errors.RespondError(w, http.StatusBadRequest, "INVALID_REQUEST", err.Error())
+		return
+	}
+
+	changedAt := time.Now()
+	if err := h.userRepo.UpdatePassword(r.Context(), userID, newHash, changedAt); err != nil {
+		errors.RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": "Password changed successfully",
 	})
 }
 

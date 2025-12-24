@@ -13,6 +13,7 @@ type SessionRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*models.Session, error)
 	GetByToken(ctx context.Context, token string) (*models.Session, error)
 	GetByRefreshToken(ctx context.Context, refreshToken string) (*models.Session, error)
+	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*models.Session, error)
 	Update(ctx context.Context, session *models.Session) error
 	Revoke(ctx context.Context, id uuid.UUID) error
 	RevokeAllForUser(ctx context.Context, userID uuid.UUID) error

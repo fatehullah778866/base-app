@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -76,7 +77,12 @@ func (s *AuthService) Signup(ctx context.Context, req SignupRequest) (*models.Us
 		return nil, nil, errors.New("email already exists")
 	}
 
-	// Hash password
+	// Validate and hash password
+	validation := auth.ValidatePassword(req.Password)
+	if !validation.Valid {
+		return nil, nil, fmt.Errorf("password validation failed: %s", validation.Errors[0])
+	}
+	
 	passwordHash, err := auth.HashPassword(req.Password)
 	if err != nil {
 		return nil, nil, err

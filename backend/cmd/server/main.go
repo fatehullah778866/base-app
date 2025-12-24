@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -14,11 +15,13 @@ import (
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
+	"base-app-service/internal/cache"
 	"base-app-service/internal/config"
 	"base-app-service/internal/database"
 	"base-app-service/internal/handlers"
 	"base-app-service/internal/middleware"
 	"base-app-service/internal/models"
+	"base-app-service/internal/monitoring"
 	"base-app-service/internal/repositories"
 	"base-app-service/internal/services"
 	"base-app-service/pkg/auth"
@@ -74,6 +77,19 @@ func main() {
 	themeRepo := repositories.NewThemeRepository(db)
 	logRepo := repositories.NewActivityLogRepository(db)
 	requestRepo := repositories.NewAccessRequestRepository(db)
+	
+	// New repositories
+	passwordResetRepo := repositories.NewPasswordResetRepository(db)
+	settingsRepo := repositories.NewSettingsRepository(db)
+	dashboardRepo := repositories.NewDashboardRepository(db)
+	notificationRepo := repositories.NewNotificationRepository(db)
+	messageRepo := repositories.NewMessageRepository(db)
+	accountSwitchRepo := repositories.NewAccountSwitchRepository(db)
+	searchRepo := repositories.NewSearchRepository(db)
+	adminSettingsRepo := repositories.NewAdminSettingsRepository(db)
+	customCRUDRepo := repositories.NewCustomCRUDRepository(db)
+	// adminActivityLogRepo := repositories.NewAdminActivityLogRepository(db) // Reserved for future use
+	// userManagementActionRepo := repositories.NewUserManagementActionRepository(db) // Reserved for future use
 
 	// Seed default admin account
 	if err := seedDefaultAdmin(context.Background(), userRepo, logger); err != nil {
@@ -86,31 +102,92 @@ func main() {
 		cfg.JWT.Secret, cfg.JWT.AccessTokenExpiry, cfg.JWT.RefreshTokenExpiry,
 		logger,
 	)
+	passwordResetService := services.NewPasswordResetService(userRepo, passwordResetRepo, logger)
 	activityLogService := services.NewActivityLogService(logRepo, logger)
 	themeService := services.NewThemeService(themeRepo, logger)
 	requestService := services.NewRequestService(requestRepo, logger)
 	adminService := services.NewAdminService(userRepo, authService, activityLogService, requestRepo, logger)
+	
+	// New services
+	settingsService := services.NewSettingsService(settingsRepo, userRepo, logger)
+	dashboardService := services.NewDashboardService(dashboardRepo, logger)
+	notificationService := services.NewNotificationService(notificationRepo, logger)
+	messagingService := services.NewMessagingService(messageRepo, userRepo, logger)
+	accountSwitchService := services.NewAccountSwitchService(accountSwitchRepo, userRepo, logger)
+	searchService := services.NewSearchService(searchRepo, logger)
+	adminSettingsService := services.NewAdminSettingsService(adminSettingsRepo, logger)
+	customCRUDService := services.NewCustomCRUDService(customCRUDRepo, logger)
+	
+	// Email service
+	emailConfig := services.GetEmailConfigFromEnv()
+	emailService := services.NewEmailService(emailConfig, logger)
+	
+	// File service
+	uploadDir := getEnv("UPLOAD_DIR", "uploads")
+	fileService := services.NewFileService(services.FileUploadConfig{
+		UploadDir: uploadDir,
+		MaxSize:   10 * 1024 * 1024, // 10MB default
+	}, logger)
+	
+	// Cache
+	_ = cache.NewInMemoryCache(logger) // Reserved for future use
+	
+	// Monitoring
+	metrics := monitoring.NewMetrics(logger)
+	healthChecker := monitoring.NewHealthChecker(db, logger)
 
 	// Background purge for soft-deleted users (5-day retention)
 	startDeletedUserSweeper(ctx, userRepo, logger)
 
 	// Initialize handlers
-	authHandler := handlers.NewAuthHandler(authService, logger)
+	authHandler := handlers.NewAuthHandler(authService, passwordResetService, emailService, logger)
 	userHandler := handlers.NewUserHandler(userRepo, requestRepo, themeRepo, sessionRepo, logger)
 	themeHandler := handlers.NewThemeHandler(themeService, logger)
-	adminHandler := handlers.NewAdminHandler(adminService, logger)
+	adminHandler := handlers.NewAdminHandler(adminService, adminSettingsService, customCRUDService, logger)
 	requestHandler := handlers.NewRequestHandler(requestService, logger)
+	
+	// New handlers
+	settingsHandler := handlers.NewSettingsHandler(settingsService, sessionRepo, logger)
+	dashboardHandler := handlers.NewDashboardHandler(dashboardService, logger)
+	notificationHandler := handlers.NewNotificationHandler(notificationService, logger)
+	messagingHandler := handlers.NewMessagingHandler(messagingService, logger)
+	accountSwitchHandler := handlers.NewAccountSwitchHandler(accountSwitchService, logger)
+	searchHandler := handlers.NewSearchHandler(searchService, logger)
+	fileUploadHandler := handlers.NewFileUploadHandler(fileService, logger)
 
 	// Setup router
 	router := mux.NewRouter()
 
-	// Middleware
+	// Initialize rate limiter
+	rateLimiter := middleware.NewInMemoryRateLimiter()
+
+	// Middleware (order matters!)
+	router.Use(middleware.RequestIDMiddleware())
 	router.Use(middleware.LoggingMiddleware(logger))
+	router.Use(middleware.SecurityHeadersMiddleware())
+	router.Use(middleware.RequestSizeLimitMiddleware(10 * 1024 * 1024)) // 10MB
 	router.Use(middleware.CORSMiddleware())
+	// CSRF middleware - skip for API endpoints
+	csrfMiddleware := middleware.CSRFMiddleware()
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Skip CSRF for API endpoints
+			if strings.HasPrefix(r.URL.Path, "/v1/") {
+				next.ServeHTTP(w, r)
+				return
+			}
+			csrfMiddleware(next).ServeHTTP(w, r)
+		})
+	})
+	router.Use(monitoring.MetricsMiddleware(metrics))
+	router.Use(middleware.RateLimitMiddleware(rateLimiter, 100, 1*time.Minute, logger)) // 100 req/min per IP/user
 	router.Use(middleware.ErrorRecovery(logger))
 
-	// Health check
-	router.HandleFunc("/health", healthCheck).Methods("GET")
+	// Health check endpoints
+	router.HandleFunc("/health", healthChecker.HealthCheck).Methods("GET")
+	router.HandleFunc("/health/ready", healthChecker.ReadinessCheck).Methods("GET")
+	router.HandleFunc("/health/live", healthChecker.LivenessCheck).Methods("GET")
+	router.HandleFunc("/metrics", metrics.MetricsHandler).Methods("GET")
 
 	// API v1 routes
 	v1 := router.PathPrefix("/v1").Subrouter()
@@ -120,7 +197,11 @@ func main() {
 	public.HandleFunc("/auth/signup", authHandler.Signup).Methods("POST")
 	public.HandleFunc("/auth/login", authHandler.Login).Methods("POST")
 	public.HandleFunc("/auth/refresh", authHandler.RefreshToken).Methods("POST")
+	public.HandleFunc("/auth/forgot-password", authHandler.ForgotPassword).Methods("POST")
+	public.HandleFunc("/auth/reset-password", authHandler.ResetPassword).Methods("POST")
 	public.HandleFunc("/admin/login", adminHandler.Login).Methods("POST")
+	public.HandleFunc("/admin/verify-code", adminHandler.VerifyAdminCode).Methods("POST") // Verify admin code
+	public.HandleFunc("/admin/create", adminHandler.CreateAdminPublic).Methods("POST") // Public admin creation with verification
 
 	// Protected routes
 	protected := v1.PathPrefix("").Subrouter()
@@ -128,6 +209,7 @@ func main() {
 	protected.HandleFunc("/auth/logout", authHandler.Logout).Methods("POST")
 	protected.HandleFunc("/users/me", userHandler.GetCurrentUser).Methods("GET")
 	protected.HandleFunc("/users/me", userHandler.UpdateProfile).Methods("PUT")
+	protected.HandleFunc("/users/me/password", userHandler.ChangePassword).Methods("PUT")
 	protected.HandleFunc("/users/me/export", userHandler.ExportData).Methods("GET")
 	protected.HandleFunc("/users/me/delete", userHandler.RequestDeletion).Methods("POST")
 	protected.HandleFunc("/users/me/settings/theme", themeHandler.GetTheme).Methods("GET")
@@ -135,6 +217,59 @@ func main() {
 	protected.HandleFunc("/users/me/settings/theme/sync", themeHandler.SyncTheme).Methods("POST")
 	protected.HandleFunc("/requests", requestHandler.Create).Methods("POST")
 	protected.HandleFunc("/requests", requestHandler.ListMine).Methods("GET")
+	
+	// Settings routes
+	protected.HandleFunc("/users/me/settings", settingsHandler.GetSettings).Methods("GET")
+	protected.HandleFunc("/users/me/settings/sessions", settingsHandler.GetActiveSessions).Methods("GET")
+	protected.HandleFunc("/users/me/settings/sessions/logout-all", settingsHandler.LogoutAllDevices).Methods("POST")
+	protected.HandleFunc("/users/me/settings/profile", settingsHandler.UpdateProfileSettings).Methods("PUT")
+	protected.HandleFunc("/users/me/settings/security", settingsHandler.UpdateSecuritySettings).Methods("PUT")
+	protected.HandleFunc("/users/me/settings/privacy", settingsHandler.UpdatePrivacySettings).Methods("PUT")
+	protected.HandleFunc("/users/me/settings/notifications", settingsHandler.UpdateNotificationSettings).Methods("PUT")
+	protected.HandleFunc("/users/me/settings/preferences", settingsHandler.UpdateAccountPreferences).Methods("PUT")
+	protected.HandleFunc("/users/me/settings/connected-accounts", settingsHandler.AddConnectedAccount).Methods("POST")
+	protected.HandleFunc("/users/me/settings/connected-accounts", settingsHandler.RemoveConnectedAccount).Methods("DELETE")
+	protected.HandleFunc("/users/me/settings/account/deactivate", settingsHandler.DeactivateAccount).Methods("POST")
+	protected.HandleFunc("/users/me/settings/account/reactivate", settingsHandler.ReactivateAccount).Methods("POST")
+	protected.HandleFunc("/users/me/settings/account/delete", settingsHandler.RequestAccountDeletion).Methods("POST")
+	
+	// Dashboard routes
+	protected.HandleFunc("/dashboard/items", dashboardHandler.CreateItem).Methods("POST")
+	protected.HandleFunc("/dashboard/items", dashboardHandler.ListItems).Methods("GET")
+	protected.HandleFunc("/dashboard/items/{id}", dashboardHandler.GetItem).Methods("GET")
+	protected.HandleFunc("/dashboard/items/{id}", dashboardHandler.UpdateItem).Methods("PUT")
+	protected.HandleFunc("/dashboard/items/{id}", dashboardHandler.DeleteItem).Methods("DELETE")
+	protected.HandleFunc("/dashboard/items/{id}/archive", dashboardHandler.SoftDeleteItem).Methods("POST")
+	
+	// Notification routes
+	protected.HandleFunc("/notifications", notificationHandler.GetNotifications).Methods("GET")
+	protected.HandleFunc("/notifications/unread-count", notificationHandler.GetUnreadCount).Methods("GET")
+	protected.HandleFunc("/notifications/read", notificationHandler.MarkAsRead).Methods("POST")
+	protected.HandleFunc("/notifications/read-all", notificationHandler.MarkAllAsRead).Methods("POST")
+	protected.HandleFunc("/notifications", notificationHandler.DeleteNotification).Methods("DELETE")
+	
+	// Messaging routes
+	protected.HandleFunc("/messages", messagingHandler.SendMessage).Methods("POST")
+	protected.HandleFunc("/messages/conversations", messagingHandler.GetConversations).Methods("GET")
+	protected.HandleFunc("/messages", messagingHandler.GetMessages).Methods("GET")
+	protected.HandleFunc("/messages/read", messagingHandler.MarkAsRead).Methods("POST")
+	protected.HandleFunc("/messages/unread-count", messagingHandler.GetUnreadCount).Methods("GET")
+	
+	// Account switching routes
+	protected.HandleFunc("/account/switch", accountSwitchHandler.SwitchAccount).Methods("POST")
+	protected.HandleFunc("/account/switch/history", accountSwitchHandler.GetSwitchHistory).Methods("GET")
+	
+	// Search routes
+	protected.HandleFunc("/search", searchHandler.Search).Methods("GET")
+	
+	// File upload routes
+	protected.HandleFunc("/files/upload/image", fileUploadHandler.UploadImage).Methods("POST")
+	protected.HandleFunc("/files/upload/document", fileUploadHandler.UploadDocument).Methods("POST")
+	protected.HandleFunc("/files/download", fileUploadHandler.DownloadFile).Methods("GET")
+	protected.HandleFunc("/files/delete", fileUploadHandler.DeleteFile).Methods("DELETE")
+
+	// Serve uploaded files
+	router.PathPrefix("/uploads/").Handler(http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadDir))))
 
 	// Admin protected routes
 	adminProtected := v1.PathPrefix("/admin").Subrouter()
@@ -148,6 +283,29 @@ func main() {
 	adminProtected.HandleFunc("/admins", adminHandler.ListAdmins).Methods("GET")
 	adminProtected.HandleFunc("/requests", adminHandler.ListRequests).Methods("GET")
 	adminProtected.HandleFunc("/requests/{id}/status", adminHandler.UpdateRequestStatus).Methods("POST")
+	
+	// Admin settings routes
+	adminProtected.HandleFunc("/settings", adminHandler.GetSettings).Methods("GET")
+	adminProtected.HandleFunc("/settings", adminHandler.UpdateSettings).Methods("PUT")
+	
+	// Admin custom CRUD routes
+	adminProtected.HandleFunc("/cruds/entities", adminHandler.CreateCRUDEntity).Methods("POST")
+	adminProtected.HandleFunc("/cruds/entities", adminHandler.ListCRUDEntities).Methods("GET")
+	adminProtected.HandleFunc("/cruds/entities/{id}", adminHandler.GetCRUDEntity).Methods("GET")
+	adminProtected.HandleFunc("/cruds/entities/{id}", adminHandler.UpdateCRUDEntity).Methods("PUT")
+	adminProtected.HandleFunc("/cruds/entities/{id}", adminHandler.DeleteCRUDEntity).Methods("DELETE")
+	adminProtected.HandleFunc("/cruds/entities/{id}/data", adminHandler.CreateCRUDData).Methods("POST")
+	adminProtected.HandleFunc("/cruds/entities/{id}/data", adminHandler.ListCRUDData).Methods("GET")
+	adminProtected.HandleFunc("/cruds/data/{id}", adminHandler.GetCRUDData).Methods("GET")
+	adminProtected.HandleFunc("/cruds/data/{id}", adminHandler.UpdateCRUDData).Methods("PUT")
+	adminProtected.HandleFunc("/cruds/data/{id}", adminHandler.DeleteCRUDData).Methods("DELETE")
+	
+	// Enhanced admin user CRUD routes
+	adminProtected.HandleFunc("/users", adminHandler.CreateUser).Methods("POST")
+	adminProtected.HandleFunc("/users/{id}", adminHandler.UpdateUser).Methods("PUT")
+	adminProtected.HandleFunc("/users/{id}", adminHandler.DeleteUser).Methods("DELETE")
+	adminProtected.HandleFunc("/users/{id}/sessions", adminHandler.GetUserSessions).Methods("GET")
+	adminProtected.HandleFunc("/users/{id}/sessions", adminHandler.RevokeUserSessions).Methods("DELETE")
 
 	// Static frontend (served from ../frontend relative to backend/)
 	frontendDir := os.Getenv("FRONTEND_DIR")
@@ -195,10 +353,12 @@ func main() {
 	logger.Info("Server exited")
 }
 
-func healthCheck(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, `{"status":"healthy"}`)
+// Helper function for environment variables
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }
 
 func seedDefaultAdmin(ctx context.Context, userRepo repositories.UserRepository, logger *zap.Logger) error {
