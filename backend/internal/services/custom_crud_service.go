@@ -106,6 +106,17 @@ func (s *CustomCRUDService) CreateData(ctx context.Context, entityID uuid.UUID, 
 		return nil, errors.New("entity not found")
 	}
 
+	// Parse schema and validate
+	var schema map[string]interface{}
+	if err := json.Unmarshal([]byte(entity.Schema), &schema); err != nil {
+		s.logger.Warn("Failed to parse entity schema", zap.Error(err))
+	} else {
+		// Validate data against schema
+		if err := ValidateDataAgainstSchema(data, schema); err != nil {
+			return nil, errors.New("data validation failed: " + err.Error())
+		}
+	}
+
 	// Validate data against schema (simplified - in production, use JSON schema validator)
 	dataJSON, err := json.Marshal(data)
 	if err != nil {

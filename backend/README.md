@@ -1,247 +1,257 @@
-# Base App Service
+# Base App Backend
 
-A production-ready Go backend service for user authentication, account management, and theme preferences. Designed to be used as a shared service across multiple products. This code now lives under `backend/` (run commands from this folder). Static assets are served from `../frontend` by default; override with `FRONTEND_DIR`.
+A modern, production-ready Go backend API that is **100% frontend-independent**. Works with any frontend framework (React, Vue, Angular, Next.js, etc.) without modification.
 
-## Features
+## 🚀 Quick Start
 
-- **Authentication**: Signup, login, refresh token, logout
-- **User Management**: Profile management, account settings
-- **Theme Management**: Global and product-specific theme preferences (KompassUI integration)
-- **Session Management**: Multi-device session tracking and revocation
-- **Device Management**: Device tracking and trust management
-- **Webhooks**: Event-driven webhook system with retry logic and HMAC signing
-- **Security**: JWT-based authentication, password hashing (bcrypt), rate limiting
-- **Admin Mode**: Built-in admin account with dashboard APIs for user management, access requests, and activity logs
+```bash
+cd backend
+go run ./cmd/server/main.go
+```
 
-## Tech Stack
+Backend runs on: `http://localhost:8080`
 
-- **Language**: Go 1.21+
-- **Database**: PostgreSQL (Cloud SQL compatible)
-- **Cache**: Redis (for rate limiting and sessions)
-- **HTTP Router**: Gorilla Mux
-- **Logging**: Zap
-- **Validation**: go-playground/validator
+## ✨ Features
 
-## Project Structure
+### ✅ Complete Authentication System
+- User signup/login
+- Admin authentication
+- Token refresh
+- Password reset
+- Session management
+
+### ✅ User Management
+- Profile management
+- Settings (8 categories)
+- Account control
+- Data export
+
+### ✅ Dashboard System
+- CRUD operations
+- Item management
+
+### ✅ Notification System
+- Real-time notifications
+- Read/unread tracking
+
+### ✅ Messaging System
+- Send/receive messages
+- Conversations
+
+### ✅ Search System
+- Global search
+- Type filtering
+
+### ✅ Admin Features
+- User management
+- Admin settings
+- Custom CRUDs with templates
+
+### ✅ Modern CRUD System
+- Pre-built templates (Portfolio, Visa, Products, Blog, Events, Contacts)
+- Custom entity creation
+- Schema validation
+
+## 📚 Documentation
+
+- **[API_SPECIFICATION.md](./API_SPECIFICATION.md)** - Complete API reference with examples
+- **[API_ENDPOINTS.md](./API_ENDPOINTS.md)** - List of all endpoints
+- **[BACKEND_INDEPENDENCE.md](./BACKEND_INDEPENDENCE.md)** - Backend independence guide
+- **[FRONTEND_MIGRATION_GUIDE.md](./FRONTEND_MIGRATION_GUIDE.md)** - Guide for changing frontend
+- **[CRUD_SYSTEM_GUIDE.md](./CRUD_SYSTEM_GUIDE.md)** - CRUD system documentation
+- **[docs/CRUD_TEMPLATES.md](./docs/CRUD_TEMPLATES.md)** - Template documentation
+
+## 🔌 API Base URL
 
 ```
-base-app/
-├── cmd/
-│   └── server/          # Application entry point
+http://localhost:8080/v1
+```
+
+## 🔒 Authentication
+
+All protected endpoints require:
+```
+Authorization: Bearer <access_token>
+```
+
+## 🌐 CORS Configuration
+
+✅ **Backend accepts requests from ANY origin**
+✅ **CORS enabled for all origins**
+✅ **Works with any frontend**
+
+## 🎯 Frontend Independence
+
+✅ **100% Frontend-Agnostic**
+- No frontend dependencies
+- Works with React, Vue, Angular, Next.js, or any framework
+- RESTful API - standard HTTP methods
+- JSON-based communication
+- Complete API documentation
+
+✅ **Change Frontend Anytime**
+- Backend doesn't need changes
+- Same API endpoints
+- Same response format
+- Works with any HTTP client
+
+## 🏗️ Architecture
+
+```
+backend/
+├── cmd/server/          # Application entry point
 ├── internal/
-│   ├── config/          # Configuration management
-│   ├── database/        # Database connection and helpers
 │   ├── handlers/        # HTTP handlers
-│   ├── middleware/      # HTTP middleware (auth, logging, CORS, recovery)
+│   ├── services/        # Business logic
+│   ├── repositories/    # Data access
 │   ├── models/          # Data models
-│   ├── repositories/    # Data access layer
-│   ├── services/        # Business logic layer
-│   └── webhooks/        # Webhook emitter and dispatcher
-├── pkg/
-│   ├── auth/            # Authentication utilities (JWT, password hashing)
-│   ├── device/          # Device detection utilities
-│   └── errors/          # Error handling utilities
+│   └── middleware/      # HTTP middleware
+├── pkg/                 # Shared packages
 ├── migrations/          # Database migrations
-└── tests/               # Test files
+└── docs/                # Documentation
 ```
 
-## Getting Started
+## 🔧 Configuration
 
-### Prerequisites
-
-- Go 1.21 or later
-- PostgreSQL 12+
-- Redis (optional, for rate limiting)
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/kompass-tech/base-app.git
-cd base-app
-```
-
-2. Install dependencies:
-```bash
-go mod download
-```
-
-3. Set up environment variables:
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
-
-4. Run database migrations:
-```bash
-# Using your preferred migration tool (e.g., migrate, golang-migrate)
-migrate -path migrations -database "postgres://user:password@localhost/base_app_db?sslmode=disable" up
-```
-
-5. Run the server:
-```bash
-go run cmd/server/main.go
-```
-
-The server will start on port 8080 (or the port specified in `PORT` environment variable).
-
-## Configuration
-
-Environment variables:
+### Environment Variables
 
 ```bash
 # Server
 PORT=8080
-ENV=development
 
 # Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=baseapp
-DB_PASSWORD=password
-DB_NAME=base_app_db
-DB_SSL_MODE=disable
-DB_MAX_CONNECTIONS=25
-DB_MAX_IDLE_CONNECTIONS=5
-DB_CONNECTION_MAX_LIFETIME=300s
-
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-REDIS_DB=0
+DB_PATH=./app.db
 
 # JWT
-JWT_SECRET=change-me-in-production
-JWT_ACCESS_TOKEN_EXPIRY=15m
-JWT_REFRESH_TOKEN_EXPIRY=720h
+JWT_SECRET=your-secret-key
+JWT_ACCESS_EXPIRY=15m
+JWT_REFRESH_EXPIRY=7d
 
-# Webhooks
-WEBHOOK_SECRET=change-me-in-production
-WEBHOOK_MAX_RETRIES=3
-WEBHOOK_RETRY_BACKOFF_MULTIPLIER=2.0
-
-# Rate Limiting
-RATE_LIMIT_ENABLED=true
-RATE_LIMIT_REDIS_KEY_PREFIX=ratelimit:
-
-# Logging
-LOG_LEVEL=info
-LOG_FORMAT=json
+# Optional: Frontend serving (leave empty for API-only mode)
+FRONTEND_DIR=../frontend
 ```
 
-## API Endpoints
+### API-Only Mode (Recommended)
 
-### Authentication
+By default, backend runs in **API-only mode**:
+- No frontend serving
+- Pure REST API
+- Frontend can be served separately
+- Better for production
 
-- `POST /v1/auth/signup` - Create a new user account
-- `POST /v1/auth/login` - Login with email and password
-- `POST /v1/auth/refresh` - Refresh access token
-- `POST /v1/auth/logout` - Logout (revoke session)
-
-### Users
-
-- `GET /v1/users/me` - Get current user profile
-- `PUT /v1/users/me` - Update user profile
-- `POST /v1/requests` - Create a user access/request ticket
-- `GET /v1/requests` - List access requests for current user
-
-### Theme
-
-- `GET /v1/users/me/settings/theme` - Get theme preferences
-- `PUT /v1/users/me/settings/theme` - Update theme preferences
-- `POST /v1/users/me/settings/theme/sync` - Sync theme with server
-
-### Admin
-
-- `POST /v1/admin/login` - Admin-only login (`admin@gmail.com` / `admin123` seeded)
-- `GET /v1/admin/users` - List/search users
-- `POST /v1/admin/users/{id}/status` - Enable/disable a user
-- `GET /v1/admin/logs` - View recent activity logs
-- `POST /v1/admin/admins` - Create another admin account
-- `GET /v1/admin/requests` - List all user requests
-- `POST /v1/admin/requests/{id}/status` - Approve/reject/pending with feedback
-
-## Docker
-
-Build the Docker image:
-
+To enable frontend serving:
 ```bash
-docker build -t base-app-service .
+export FRONTEND_DIR=../frontend
+go run ./cmd/server/main.go
 ```
 
-Run the container:
+## 📡 API Endpoints
 
+### Public Endpoints
+- `POST /auth/signup` - User registration
+- `POST /auth/login` - User login
+- `POST /auth/refresh` - Refresh token
+- `POST /auth/forgot-password` - Request password reset
+- `POST /auth/reset-password` - Reset password
+- `POST /admin/login` - Admin login
+- `POST /admin/verify-code` - Verify admin code
+- `POST /admin/create` - Create admin account
+
+### Protected User Endpoints
+- `GET /users/me` - Get current user
+- `PUT /users/me` - Update profile
+- `GET /users/me/settings` - Get settings
+- `PUT /users/me/settings/*` - Update settings
+- `GET /dashboard/items` - List dashboard items
+- `POST /dashboard/items` - Create item
+- `GET /notifications` - Get notifications
+- `POST /messages` - Send message
+- `GET /search` - Search
+
+### Protected Admin Endpoints
+- `GET /admin/users` - List users
+- `POST /admin/users` - Create user
+- `GET /admin/cruds/templates` - Get CRUD templates
+- `POST /admin/cruds/templates/{name}/create` - Create from template
+
+See [API_SPECIFICATION.md](./API_SPECIFICATION.md) for complete documentation.
+
+## 🧪 Testing
+
+### Test with cURL
 ```bash
-docker run -p 8080:8080 --env-file .env base-app-service
+# Login
+curl -X POST http://localhost:8080/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"password"}'
+
+# Get profile
+curl -X GET http://localhost:8080/v1/users/me \
+  -H "Authorization: Bearer <token>"
 ```
 
-## Development
+### Test with Postman
+1. Import API specification
+2. Test all endpoints
+3. No frontend needed
 
-### Running Tests
+## 🔐 Security Features
 
-```bash
-go test ./...
+- ✅ JWT authentication
+- ✅ Password hashing (bcrypt)
+- ✅ CORS protection
+- ✅ Rate limiting
+- ✅ Security headers
+- ✅ Input validation
+- ✅ SQL injection protection
+- ✅ XSS protection
+
+## 📊 Health Checks
+
+- `GET /health` - Health check
+- `GET /health/ready` - Readiness check
+- `GET /health/live` - Liveness check
+- `GET /metrics` - Prometheus metrics
+
+## 🎨 CRUD Templates
+
+Pre-built templates for common use cases:
+- **Portfolio** - Project showcase
+- **Visa** - Visa management
+- **Products** - E-commerce catalog
+- **Blog Posts** - Content management
+- **Events** - Event management
+- **Contacts** - CRM system
+
+See [CRUD_SYSTEM_GUIDE.md](./CRUD_SYSTEM_GUIDE.md) for details.
+
+## 🚀 Production Deployment
+
+### Recommended Setup
+1. **Backend:** Deploy as API-only service
+2. **Frontend:** Deploy separately (CDN, separate server, etc.)
+3. **Database:** Use production SQLite or migrate to PostgreSQL/MySQL
+4. **Environment:** Set proper environment variables
+
+### Docker (Optional)
+```dockerfile
+FROM golang:1.21-alpine
+WORKDIR /app
+COPY . .
+RUN go build -o server ./cmd/server/main.go
+CMD ["./server"]
 ```
 
-### API Testing
-
-For testing the API endpoints, see [TESTING.md](TESTING.md) for comprehensive testing instructions.
-
-**Check prerequisites:**
-```bash
-./scripts/check-prerequisites.sh
-```
-
-**Quick test:**
-```bash
-# Run automated test suite
-./scripts/test-api.sh
-```
-
-The test script will automatically check if the server is running before testing.
-
-### Code Formatting
-
-```bash
-go fmt ./...
-```
-
-### Linting
-
-```bash
-golangci-lint run
-```
-
-## Deployment
-
-The service is designed to be deployed on Google Cloud Platform:
-
-- **Cloud Run**: Serverless container deployment
-- **Cloud SQL**: Managed PostgreSQL database
-- **Memorystore**: Managed Redis instance
-
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions and `cloudbuild.yaml` for CI/CD pipeline configuration.
-
-## Documentation
-
-### Quick Start Guides
-
-- [QUICKSTART.md](QUICKSTART.md) - Get started in 5 minutes
-- [TESTING.md](TESTING.md) - Comprehensive testing guide
-- [DEPLOYMENT.md](DEPLOYMENT.md) - Production deployment guide
-- [API_DOCUMENTATION.md](API_DOCUMENTATION.md) - Complete API reference
-
-### Technical Reports
-
-For detailed technical documentation, implementation reports, security audits, and service-specific reports, see the [Reports Center](docs/reports/README.md):
-
-- **Technical Reports**: Architecture, API specs, database schema
-- **Implementation Reports**: Status, milestones, feature completion
-- **Security Audits**: Security reviews and recommendations
-- **Service Reports**: Auth, Theme, and Webhook service documentation
-- **Analysis Reports**: Performance, code coverage, optimization
-
-## License
+## 📝 License
 
 [Your License Here]
+
+## 🤝 Support
+
+- **API Documentation:** See `API_SPECIFICATION.md`
+- **Migration Guide:** See `FRONTEND_MIGRATION_GUIDE.md`
+- **Backend Independence:** See `BACKEND_INDEPENDENCE.md`
+
+---
+
+**✅ Backend is 100% independent and ready for any frontend!**

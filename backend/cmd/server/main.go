@@ -300,6 +300,11 @@ func main() {
 	adminProtected.HandleFunc("/cruds/data/{id}", adminHandler.UpdateCRUDData).Methods("PUT")
 	adminProtected.HandleFunc("/cruds/data/{id}", adminHandler.DeleteCRUDData).Methods("DELETE")
 	
+	// CRUD Templates routes (for easy entity creation)
+	adminProtected.HandleFunc("/cruds/templates", adminHandler.GetCRUDTemplates).Methods("GET")
+	adminProtected.HandleFunc("/cruds/templates/{name}", adminHandler.GetCRUDTemplate).Methods("GET")
+	adminProtected.HandleFunc("/cruds/templates/{name}/create", adminHandler.CreateEntityFromTemplate).Methods("POST")
+	
 	// Enhanced admin user CRUD routes
 	adminProtected.HandleFunc("/users", adminHandler.CreateUser).Methods("POST")
 	adminProtected.HandleFunc("/users/{id}", adminHandler.UpdateUser).Methods("PUT")
@@ -307,18 +312,26 @@ func main() {
 	adminProtected.HandleFunc("/users/{id}/sessions", adminHandler.GetUserSessions).Methods("GET")
 	adminProtected.HandleFunc("/users/{id}/sessions", adminHandler.RevokeUserSessions).Methods("DELETE")
 
-	// Static frontend (served from ../frontend relative to backend/)
+	// Optional: Static frontend serving (can be disabled for API-only mode)
+	// Backend works completely independently - frontend is optional
+	// Set FRONTEND_DIR environment variable to enable frontend serving
+	// If not set, backend runs in API-only mode (recommended for production)
 	frontendDir := os.Getenv("FRONTEND_DIR")
-	if frontendDir == "" {
-		defaultDir := filepath.Clean(filepath.Join("..", "frontend"))
-		if _, err := os.Stat(defaultDir); err == nil {
-			frontendDir = defaultDir
+	if frontendDir != "" {
+		if _, err := os.Stat(frontendDir); err == nil {
+			staticServer := http.FileServer(http.Dir(frontendDir))
+			router.PathPrefix("/").Handler(staticServer)
+			logger.Info("Serving frontend from directory", zap.String("dir", frontendDir))
 		} else {
-			frontendDir = "frontend"
+			logger.Warn("Frontend directory not found, running in API-only mode", zap.String("dir", frontendDir))
 		}
+	} else {
+		// API-only mode - no frontend serving
+		// This is the recommended mode for production
+		// Frontend can be served separately (e.g., CDN, separate server, etc.)
+		logger.Info("Running in API-only mode (no frontend serving)")
+		logger.Info("Backend is ready to accept requests from any frontend")
 	}
-	staticServer := http.FileServer(http.Dir(frontendDir))
-	router.PathPrefix("/").Handler(staticServer)
 
 	// Start server
 	srv := &http.Server{
