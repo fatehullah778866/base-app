@@ -321,26 +321,55 @@ func main() {
 	adminProtected.HandleFunc("/users/{id}/sessions", adminHandler.GetUserSessions).Methods("GET")
 	adminProtected.HandleFunc("/users/{id}/sessions", adminHandler.RevokeUserSessions).Methods("DELETE")
 
-	// Optional: Static frontend serving (can be disabled for API-only mode)
-	// Backend works completely independently - frontend is optional
-	// Set FRONTEND_DIR environment variable to enable frontend serving
-	// If not set, backend runs in API-only mode (recommended for production)
+	// Static frontend serving - try to serve frontend if it exists
+	// Check for frontend in common locations
 	frontendDir := os.Getenv("FRONTEND_DIR")
+	if frontendDir == "" {
+		// Try default locations relative to backend
+		defaultDirs := []string{
+			filepath.Clean(filepath.Join("..", "frontend")),
+			"frontend",
+			filepath.Clean(filepath.Join(".", "frontend")),
+		}
+		for _, dir := range defaultDirs {
+			if _, err := os.Stat(dir); err == nil {
+				frontendDir = dir
+				break
+			}
+		}
+	}
+	
 	if frontendDir != "" {
 		if _, err := os.Stat(frontendDir); err == nil {
+			// Serve frontend files, but API routes take precedence
+			// Only serve static files if the path doesn't start with /v1, /health, or /metrics
 			staticServer := http.FileServer(http.Dir(frontendDir))
-			router.PathPrefix("/").Handler(staticServer)
+			router.PathPrefix("/").Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// Don't serve frontend for API routes
+				if strings.HasPrefix(r.URL.Path, "/v1/") || 
+				   strings.HasPrefix(r.URL.Path, "/health") || 
+				   strings.HasPrefix(r.URL.Path, "/metrics") {
+					http.NotFound(w, r)
+					return
+				}
+				staticServer.ServeHTTP(w, r)
+			}))
 			logger.Info("Serving frontend from directory", zap.String("dir", frontendDir))
+			logger.Info("Frontend available at: http://localhost:" + cfg.Server.Port)
 		} else {
 			logger.Warn("Frontend directory not found, running in API-only mode", zap.String("dir", frontendDir))
+			// Add API info endpoint
+			router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`{"message":"Base App API","version":"1.0","docs":"/v1","status":"running"}`))
+			}).Methods("GET")
 		}
 	} else {
-		// API-only mode - no frontend serving
-		// This is the recommended mode for production
-		// Frontend can be served separately (e.g., CDN, separate server, etc.)
+		// API-only mode
 		logger.Info("Running in API-only mode (no frontend serving)")
 		logger.Info("Backend is ready to accept requests from any frontend")
-		// Add a simple API info endpoint for root
+		// Add API info endpoint
 		router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
