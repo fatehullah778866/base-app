@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -331,6 +330,12 @@ func main() {
 		// Frontend can be served separately (e.g., CDN, separate server, etc.)
 		logger.Info("Running in API-only mode (no frontend serving)")
 		logger.Info("Backend is ready to accept requests from any frontend")
+		// Add a simple API info endpoint for root
+		router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"message":"Base App API","version":"1.0","docs":"/v1","status":"running"}`))
+		}).Methods("GET")
 	}
 
 	// Start server
