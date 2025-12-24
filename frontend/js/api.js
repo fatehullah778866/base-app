@@ -19,6 +19,11 @@ class APIClient {
         };
 
         try {
+            // Check if running from file:// protocol (which causes CORS issues)
+            if (window.location.protocol === 'file:') {
+                throw new Error('CORS_ERROR: Frontend is opened as file://. Please use a web server. Run: python -m http.server 8000 in the frontend folder, then open http://localhost:8000');
+            }
+            
             let response = await fetch(url, config);
             
             // Check content type before parsing JSON
@@ -73,12 +78,17 @@ class APIClient {
 
             return data;
         } catch (error) {
+            // Check for file:// protocol error first
+            if (error.message && error.message.includes('CORS_ERROR')) {
+                throw error;
+            }
+            
             if (error.name === 'TypeError' && error.message.includes('fetch')) {
                 // Check if it's a CORS error
                 if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
-                    throw new Error('CORS error. Please ensure the backend server is running and CORS is enabled. Backend URL: ' + url);
+                    throw new Error('CORS error. If opening HTML file directly, use a web server. Run: python -m http.server 8000 in frontend folder, then open http://localhost:8000. Backend URL: ' + url);
                 }
-                throw new Error('Network error. Please check your connection and ensure the backend server is running at ' + url);
+                throw new Error('Network error. Please check: 1) Backend server is running at ' + url + ', 2) If opening HTML directly, use a web server (python -m http.server 8000)');
             }
             if (error.message.includes('JSON')) {
                 throw new Error('Server response error. Please check the backend server logs.');
