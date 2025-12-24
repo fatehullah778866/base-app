@@ -125,8 +125,60 @@ function setupEventListeners() {
     document.getElementById('cancel-btn')?.addEventListener('click', closeModal);
     document.querySelector('.close')?.addEventListener('click', closeModal);
 
+    // Enhanced search with backend integration
+    let searchTimeout;
     document.getElementById('search-input')?.addEventListener('input', (e) => {
-        filterItems(e.target.value);
+        const query = e.target.value.trim();
+        clearTimeout(searchTimeout);
+        
+        if (query.length === 0) {
+            document.getElementById('search-results').style.display = 'none';
+            renderItems(items);
+            return;
+        }
+        
+        // Debounce search
+        searchTimeout = setTimeout(() => {
+            performSearch(query);
+        }, 300);
+    });
+    
+    document.getElementById('search-input')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const query = e.target.value.trim();
+            if (query) {
+                performSearch(query);
+            }
+        }
+    });
+    
+    document.getElementById('advanced-search-btn')?.addEventListener('click', () => {
+        const filters = document.getElementById('search-filters');
+        filters.style.display = filters.style.display === 'none' ? 'block' : 'none';
+    });
+    
+    document.getElementById('apply-search-filters')?.addEventListener('click', () => {
+        const query = document.getElementById('search-input').value.trim();
+        performAdvancedSearch(query);
+    });
+    
+    document.getElementById('clear-search-filters')?.addEventListener('click', () => {
+        document.getElementById('search-type').value = 'all';
+        document.getElementById('search-location').value = '';
+        document.getElementById('search-country').value = '';
+        document.getElementById('search-city').value = '';
+        document.getElementById('search-date-from').value = '';
+        document.getElementById('search-date-to').value = '';
+        document.getElementById('search-input').value = '';
+        document.getElementById('search-results').style.display = 'none';
+        renderItems(items);
+    });
+    
+    document.getElementById('close-search-results')?.addEventListener('click', () => {
+        document.getElementById('search-results').style.display = 'none';
+        document.getElementById('search-input').value = '';
+        renderItems(items);
     });
 
     window.addEventListener('click', (e) => {
@@ -178,6 +230,153 @@ function renderItems(itemsToRender) {
     `).join('');
 }
 
+// Backend-powered search
+async function performSearch(query) {
+    if (!query || query.length < 2) {
+        return;
+    }
+    
+    try {
+        const response = await searchAPI.search({
+            query: query,
+            type: 'all',
+            limit: 50
+        });
+        
+        if (response.success && response.data) {
+            displaySearchResults(response.data);
+        }
+    } catch (error) {
+        console.error('Search error:', error);
+        // Fallback to client-side filtering
+        filterItems(query);
+    }
+}
+
+async function performAdvancedSearch(query) {
+    const type = document.getElementById('search-type').value;
+    const location = document.getElementById('search-location').value.trim();
+    const country = document.getElementById('search-country').value.trim();
+    const city = document.getElementById('search-city').value.trim();
+    const dateFrom = document.getElementById('search-date-from').value;
+    const dateTo = document.getElementById('search-date-to').value;
+    
+    const params = {
+        type: type || 'all',
+        limit: 50
+    };
+    
+    if (query) params.query = query;
+    if (location) params.location = location;
+    if (country) params.country = country;
+    if (city) params.city = city;
+    if (dateFrom) params.dateFrom = dateFrom;
+    if (dateTo) params.dateTo = dateTo;
+    
+    try {
+        const response = await searchAPI.searchAdvanced(params);
+        if (response.success && response.data) {
+            displaySearchResults(response.data);
+        }
+    } catch (error) {
+        showMessage('Search failed: ' + (error.message || 'Unknown error'), 'error');
+    }
+}
+
+function displaySearchResults(searchData) {
+    const resultsContainer = document.getElementById('search-results');
+    const resultsContent = document.getElementById('search-results-content');
+    
+    if (!resultsContainer || !resultsContent) return;
+    
+    const results = searchData.data?.results || [];
+    const count = searchData.data?.count || 0;
+    
+    if (count === 0) {
+        resultsContent.innerHTML = '<div class="muted-text">No results found.</div>';
+        resultsContainer.style.display = 'block';
+        return;
+    }
+    
+    // Group results by type
+    const grouped = {};
+    results.forEach(result => {
+        if (!grouped[result.type]) {
+            grouped[result.type] = [];
+        }
+        grouped[result.type].push(result);
+    });
+    
+    let html = `<div class="search-summary">Found ${count} result(s)</div>`;
+    
+    // Dashboard items
+    if (grouped.dashboard_item) {
+        html += '<div class="search-group"><h4>Dashboard Items</h4>';
+        html += grouped.dashboard_item.map(item => `
+            <div class="search-result-item" onclick="openItemFromSearch('${item.id}')">
+                <strong>${escapeHtml(item.title || 'Untitled')}</strong>
+                <div class="muted-text">${escapeHtml(item.description || '')}</div>
+            </div>
+        `).join('');
+        html += '</div>';
+    }
+    
+    // Messages
+    if (grouped.message) {
+        html += '<div class="search-group"><h4>Messages</h4>';
+        html += grouped.message.map(item => `
+            <div class="search-result-item">
+                <strong>${escapeHtml(item.title || 'Message')}</strong>
+                <div class="muted-text">${escapeHtml(item.description || '')}</div>
+            </div>
+        `).join('');
+        html += '</div>';
+    }
+    
+    // Users
+    if (grouped.user) {
+        html += '<div class="search-group"><h4>Users</h4>';
+        html += grouped.user.map(item => `
+            <div class="search-result-item" onclick="selectUserFromSearch('${item.id}')">
+                <strong>${escapeHtml(item.title || 'User')}</strong>
+            </div>
+        `).join('');
+        html += '</div>';
+    }
+    
+    // Notifications
+    if (grouped.notification) {
+        html += '<div class="search-group"><h4>Notifications</h4>';
+        html += grouped.notification.map(item => `
+            <div class="search-result-item">
+                <strong>${escapeHtml(item.title || 'Notification')}</strong>
+                <div class="muted-text">${escapeHtml(item.description || '')}</div>
+            </div>
+        `).join('');
+        html += '</div>';
+    }
+    
+    resultsContent.innerHTML = html;
+    resultsContainer.style.display = 'block';
+}
+
+function openItemFromSearch(itemId) {
+    const item = items.find(i => i.id === itemId);
+    if (item) {
+        openModal(itemId);
+        document.getElementById('search-results').style.display = 'none';
+    }
+}
+
+function selectUserFromSearch(userId) {
+    activeRecipientId = userId;
+    document.getElementById('message-recipient-id').value = userId;
+    document.getElementById('messages-section').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('search-results').style.display = 'none';
+    showMessage('User selected. You can now send a message.', 'success');
+}
+
+// Fallback client-side filtering
 function filterItems(searchTerm) {
     const filtered = items.filter(item =>
         item.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -413,6 +413,13 @@ body.theme-dark.high-contrast {
     margin-bottom: 1.5rem;
 }
 
+/* Search Components */
+.search-container {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
 .search-input {
     width: 100%;
     max-width: 400px;

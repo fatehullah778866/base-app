@@ -246,8 +246,52 @@ const notificationAPI = {
 };
 
 const searchAPI = {
+    // Global search - searches across all entities
+    search: (params) => {
+        const queryParams = new URLSearchParams();
+        if (params.query) queryParams.append('q', params.query);
+        if (params.type) queryParams.append('type', params.type);
+        if (params.limit) queryParams.append('limit', params.limit);
+        if (params.offset) queryParams.append('offset', params.offset);
+        if (params.location) queryParams.append('location', params.location);
+        if (params.country) queryParams.append('country', params.country);
+        if (params.city) queryParams.append('city', params.city);
+        if (params.dateFrom) queryParams.append('date_from', params.dateFrom);
+        if (params.dateTo) queryParams.append('date_to', params.dateTo);
+        if (params.category) queryParams.append('category', params.category);
+        if (params.status) queryParams.append('status', params.status);
+        if (params.entityId) queryParams.append('entity_id', params.entityId);
+        
+        return api.get(`/search?${queryParams.toString()}`);
+    },
+    
+    // Search with JSON body (POST)
+    searchAdvanced: (params) => api.post('/search', params),
+    
+    // Quick search methods
     searchUsers: (query, limit = 10) =>
         api.get(`/search?type=users&q=${encodeURIComponent(query)}&limit=${limit}`),
+    
+    searchDashboard: (query, limit = 20) =>
+        api.get(`/search?type=dashboard_items&q=${encodeURIComponent(query)}&limit=${limit}`),
+    
+    searchMessages: (query, limit = 20) =>
+        api.get(`/search?type=messages&q=${encodeURIComponent(query)}&limit=${limit}`),
+    
+    searchNotifications: (query, limit = 20) =>
+        api.get(`/search?type=notifications&q=${encodeURIComponent(query)}&limit=${limit}`),
+    
+    searchByLocation: (location, country, city, limit = 20) => {
+        const params = { type: 'locations', limit };
+        if (location) params.location = location;
+        if (country) params.country = country;
+        if (city) params.city = city;
+        return api.get(`/search?${new URLSearchParams(params).toString()}`);
+    },
+    
+    // Search history
+    getSearchHistory: (limit = 50) => api.get(`/search/history?limit=${limit}`),
+    clearSearchHistory: () => api.delete('/search/history'),
 };
 
 function showMessage(message, type = 'success') {
