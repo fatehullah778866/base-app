@@ -74,7 +74,11 @@ class APIClient {
             return data;
         } catch (error) {
             if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                throw new Error('Network error. Please check your connection and ensure the backend server is running.');
+                // Check if it's a CORS error
+                if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+                    throw new Error('CORS error. Please ensure the backend server is running and CORS is enabled. Backend URL: ' + url);
+                }
+                throw new Error('Network error. Please check your connection and ensure the backend server is running at ' + url);
             }
             if (error.message.includes('JSON')) {
                 throw new Error('Server response error. Please check the backend server logs.');
