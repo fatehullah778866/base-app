@@ -70,3 +70,19 @@ type AdminPermission struct {
 	GrantedBy     *uuid.UUID `db:"granted_by" json:"granted_by"`
 }
 
+// CRUDTemplate represents a CRUD template stored in the database
+type CRUDTemplate struct {
+	ID          uuid.UUID `db:"id" json:"id"`
+	Name        string    `db:"name" json:"name"` // e.g., "portfolio", "visa"
+	DisplayName string    `db:"display_name" json:"display_name"`
+	Description *string   `db:"description" json:"description"`
+	Schema      string    `db:"schema" json:"schema"` // JSON schema
+	Icon        *string   `db:"icon" json:"icon"`
+	Category    *string   `db:"category" json:"category"`
+	CreatedBy   uuid.UUID `db:"created_by" json:"created_by"`
+	IsActive    bool      `db:"is_active" json:"is_active"`
+	IsSystem    bool      `db:"is_system" json:"is_system"` // System templates cannot be deleted
+	CreatedAt   time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
+}
+

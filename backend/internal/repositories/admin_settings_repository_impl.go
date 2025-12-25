@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -88,6 +89,32 @@ func (r *adminSettingsRepository) Update(ctx context.Context, settings *models.A
 		settings.AdminID.String(),
 	)
 	return err
+}
+
+func (r *adminSettingsRepository) GetFirstAdminVerificationCode(ctx context.Context) (string, error) {
+	var adminVerificationCode sql.NullString
+	
+	// Get the verification code from the first admin's settings
+	query := `SELECT admin_verification_code FROM admin_settings 
+		WHERE admin_verification_code IS NOT NULL AND admin_verification_code != ''
+		ORDER BY created_at ASC LIMIT 1`
+	
+	err := r.db.QueryRowContext(ctx, query).Scan(&adminVerificationCode)
+	if err == sql.ErrNoRows {
+		// No admin settings found, return default
+		return "Kompasstech2025@", nil
+	}
+	if err != nil {
+		return "Kompasstech2025@", err
+	}
+	
+	if adminVerificationCode.Valid && adminVerificationCode.String != "" {
+		// Trim the code before returning
+		return strings.TrimSpace(adminVerificationCode.String), nil
+	}
+	
+	// Fallback to default
+	return "Kompasstech2025@", nil
 }
 
 type customCRUDRepository struct {

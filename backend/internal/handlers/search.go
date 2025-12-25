@@ -128,6 +128,23 @@ func (h *SearchHandler) parseQueryParams(r *http.Request, req *services.SearchRe
 			req.EntityID = &id
 		}
 	}
+
+	// Location coordinates for "Search Near Me"
+	if latStr := r.URL.Query().Get("latitude"); latStr != "" {
+		if lat, err := strconv.ParseFloat(latStr, 64); err == nil {
+			req.Latitude = &lat
+		}
+	}
+	if lngStr := r.URL.Query().Get("longitude"); lngStr != "" {
+		if lng, err := strconv.ParseFloat(lngStr, 64); err == nil {
+			req.Longitude = &lng
+		}
+	}
+	if radiusStr := r.URL.Query().Get("radius"); radiusStr != "" {
+		if radius, err := strconv.ParseFloat(radiusStr, 64); err == nil && radius > 0 {
+			req.Radius = &radius
+		}
+	}
 }
 
 // GetSearchHistory retrieves user's search history

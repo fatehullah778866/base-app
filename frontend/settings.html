@@ -3,396 +3,386 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Settings - Base App</title>
+    <title>Settings</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- Navigation Bar -->
     <nav class="navbar">
-        <div class="nav-container">
-            <h1 class="logo">Base App</h1>
-            <div class="nav-menu">
-                <a href="dashboard.html" class="nav-link">Dashboard</a>
-                <span class="user-name" id="user-name"></span>
-                <div class="profile-dropdown">
-                    <img src="" alt="Avatar" class="profile-icon" id="profile-icon">
-                    <div class="dropdown-menu" id="dropdown-menu">
-                        <a href="dashboard.html">Dashboard</a>
-                        <a href="#" id="logout-link">Logout</a>
-                    </div>
-                </div>
+        <div class="nav-content">
+            <div class="nav-left">
+                <h2>Settings</h2>
+            </div>
+            <div class="nav-right">
+                <a href="/dashboard" class="btn btn-sm btn-secondary">← Back to Dashboard</a>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content -->
     <div class="container">
-        <div class="page-header">
-            <h2>Settings</h2>
-        </div>
-
-        <div id="message" class="message"></div>
-
         <div class="settings-layout">
-            <aside class="settings-sidebar">
-                <h3 class="settings-title">Settings</h3>
-                <div class="settings-nav" id="settings-nav">
-                    <button type="button" class="settings-nav-item active" data-section="profile">Profile</button>
-                    <button type="button" class="settings-nav-item" data-section="security">Security</button>
-                    <button type="button" class="settings-nav-item" data-section="privacy">Privacy</button>
-                    <button type="button" class="settings-nav-item" data-section="notifications">Notifications</button>
-                    <button type="button" class="settings-nav-item" data-section="preferences">Account Preferences</button>
-                    <button type="button" class="settings-nav-item" data-section="connected">Connected Accounts</button>
-                    <button type="button" class="settings-nav-item" data-section="data">Data & Account</button>
-                    <button type="button" class="settings-nav-item" data-section="support">Help & Support</button>
+            <!-- Settings Sidebar -->
+            <div class="settings-sidebar">
+                <div class="settings-menu">
+                    <button class="settings-menu-item active" onclick="showSettingsSection('profile')">
+                        👤 Profile Settings
+                    </button>
+                    <button class="settings-menu-item" onclick="showSettingsSection('security')">
+                        🔒 Security Settings
+                    </button>
+                    <button class="settings-menu-item" onclick="showSettingsSection('privacy')">
+                        🛡️ Privacy Settings
+                    </button>
+                    <button class="settings-menu-item" onclick="showSettingsSection('notifications')">
+                        🔔 Notification Settings
+                    </button>
+                    <button class="settings-menu-item" onclick="showSettingsSection('preferences')">
+                        ⚙️ Account Preferences
+                    </button>
+                    <button class="settings-menu-item" onclick="showSettingsSection('connected')">
+                        🔗 Connected Accounts
+                    </button>
+                    <button class="settings-menu-item" onclick="showSettingsSection('data')">
+                        📊 Data & Account Control
+                    </button>
+                    <button class="settings-menu-item" onclick="showSettingsSection('help')">
+                        ❓ Help & Support
+                    </button>
                 </div>
-            </aside>
+            </div>
 
-            <main class="settings-content">
+            <!-- Settings Content -->
+            <div class="settings-content">
                 <!-- Profile Settings -->
-                <section class="settings-panel active" data-section="profile" id="section-profile">
-                    <div class="settings-section">
-                        <h3>Profile Settings</h3>
-                        <form id="profile-form">
-                            <div class="form-group">
-                                <label>Full Name</label>
-                                <input type="text" id="profile-name">
+                <div id="profile-section" class="settings-section active">
+                    <h3>Profile Settings</h3>
+                    <p class="section-description">Update your personal information and profile details</p>
+                    <form onsubmit="updateProfileSettings(event)">
+                        <div class="form-group">
+                            <label>Profile Picture</label>
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                                <div id="profile-picture-preview" style="width: 100px; height: 100px; border-radius: 50%; background: var(--light); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                    <span id="profile-picture-initial" style="font-size: 2rem; font-weight: bold; color: var(--primary);">U</span>
+                                </div>
+                                <div style="flex: 1;">
+                                    <input type="file" id="profile-picture-input" accept="image/*" onchange="handleProfilePictureChange(event)" style="display: none;">
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('profile-picture-input').click()">Choose Image</button>
+                                    <small class="form-text" style="display: block; margin-top: 0.5rem;">JPG, PNG, or GIF. Max 5MB.</small>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label>Display Name</label>
-                                <input type="text" id="profile-display-name">
-                            </div>
-                            <div class="form-group">
-                                <label>Username</label>
-                                <input type="text" id="profile-username">
-                            </div>
-                            <div class="form-group">
-                                <label>Profile Picture</label>
-                                <input type="file" id="profile-avatar" accept="image/*">
-                                <small id="profile-avatar-current"></small>
-                            </div>
-                            <div class="form-group">
-                                <label>Email</label>
-                                <input type="email" id="profile-email" readonly>
-                            </div>
-                            <div class="form-group">
-                                <label>Phone</label>
-                                <input type="tel" id="profile-phone">
-                            </div>
-                            <div class="form-group">
-                                <label>Bio</label>
-                                <textarea id="profile-bio" rows="3"></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label>Date of Birth</label>
-                                <input type="date" id="profile-dob">
-                            </div>
-                            <button type="submit" class="btn btn-primary">Save Profile</button>
-                        </form>
-                    </div>
-                </section>
+                        </div>
+                        <div class="form-group">
+                            <label>Full Name / Display Name *</label>
+                            <input type="text" id="profile-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input type="text" id="profile-username" placeholder="Optional username">
+                            <small class="form-text">Choose a unique username (optional)</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Email Address *</label>
+                            <input type="email" id="profile-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Phone Number</label>
+                            <input type="tel" id="profile-phone" placeholder="+1 234 567 8900">
+                        </div>
+                        <div class="form-group">
+                            <label>Bio / About Me</label>
+                            <textarea id="profile-bio" rows="4" placeholder="Tell us about yourself..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Date of Birth</label>
+                            <input type="date" id="profile-dob">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Save Profile Changes</button>
+                        </div>
+                    </form>
+                </div>
 
                 <!-- Security Settings -->
-                <section class="settings-panel" data-section="security" id="section-security">
-                    <div class="settings-section">
-                        <h3>Security Settings</h3>
-                        <form id="password-form">
+                <div id="security-section" class="settings-section">
+                    <h3>Security Settings</h3>
+                    <p class="section-description">Manage your account security and authentication</p>
+                    
+                    <div class="section-block">
+                        <h4>Change Password</h4>
+                        <form onsubmit="changePassword(event)">
                             <div class="form-group">
-                                <label>Current Password</label>
-                                <input type="password" id="current-password">
+                                <label>Current Password *</label>
+                                <input type="password" id="current-password" required>
                             </div>
                             <div class="form-group">
-                                <label>New Password</label>
-                                <input type="password" id="new-password">
-                                <small>Password must be at least 8 characters with a mix of letters, numbers, and symbols.</small>
+                                <label>New Password *</label>
+                                <input type="password" id="new-password" required minlength="8">
+                                <small class="form-text">Minimum 8 characters, include letters, numbers, and symbols</small>
                             </div>
                             <div class="form-group">
-                                <label>Confirm New Password</label>
-                                <input type="password" id="confirm-password">
+                                <label>Confirm New Password *</label>
+                                <input type="password" id="confirm-password" required minlength="8">
                             </div>
-                            <button type="submit" class="btn btn-primary">Change Password</button>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Change Password</button>
+                            </div>
                         </form>
-
-                        <div class="settings-divider"></div>
-
-                        <form id="security-form">
-                            <div class="form-group">
-                                <label>Two-Factor Authentication (2FA)</label>
-                                <label class="switch">
-                                    <input type="checkbox" id="security-2fa">
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="form-group">
-                                <label>Security Question (optional)</label>
-                                <input type="text" id="security-question" placeholder="Your first school?">
-                            </div>
-                            <div class="form-group">
-                                <label>Security Answer</label>
-                                <input type="password" id="security-answer" placeholder="Answer">
-                            </div>
-                            <button type="submit" class="btn btn-secondary">Save Security Options</button>
-                        </form>
-
-                        <div class="settings-divider"></div>
-
-                        <div class="form-group">
-                            <label>Active Sessions</label>
-                            <div id="active-sessions" class="settings-list"></div>
-                        </div>
-                        <button type="button" class="btn btn-secondary" id="logout-all-btn">Log Out From All Devices</button>
                     </div>
-                </section>
+
+                    <div class="section-block">
+                        <h4>Two-Factor Authentication (2FA)</h4>
+                        <form onsubmit="update2FA(event)">
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="2fa-enabled">
+                                    Enable Two-Factor Authentication
+                                </label>
+                                <small class="form-text">Add an extra layer of security to your account</small>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Update 2FA Settings</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="section-block">
+                        <h4>Active Sessions / Logged-in Devices</h4>
+                        <div id="sessions-list" class="sessions-list">
+                            <div class="loading">Loading sessions...</div>
+                        </div>
+                        <div style="margin-top: 1rem;">
+                            <button class="btn btn-danger btn-sm" onclick="logoutAllDevices()">Logout All Devices</button>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Privacy Settings -->
-                <section class="settings-panel" data-section="privacy" id="section-privacy">
-                    <div class="settings-section">
-                        <h3>Privacy Settings</h3>
-                        <form id="privacy-form">
-                            <div class="form-group">
-                                <label>Profile Visibility</label>
-                                <select id="privacy-visibility">
-                                    <option value="public">Public</option>
-                                    <option value="private">Private</option>
-                                    <option value="friends">Friends</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Who Can See Email</label>
-                                <select id="privacy-email">
-                                    <option value="everyone">Everyone</option>
-                                    <option value="friends">Friends Only</option>
-                                    <option value="private">Only Me</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Who Can See Phone</label>
-                                <select id="privacy-phone">
-                                    <option value="everyone">Everyone</option>
-                                    <option value="friends">Friends Only</option>
-                                    <option value="private">Only Me</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Who Can Message You</label>
-                                <select id="privacy-messaging">
-                                    <option value="everyone">Everyone</option>
-                                    <option value="friends">Friends Only</option>
-                                    <option value="none">No One</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Search Visibility</label>
-                                <select id="privacy-search">
-                                    <option value="visible">Visible</option>
-                                    <option value="hidden">Hidden</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Data Sharing Preferences</label>
-                                <select id="privacy-sharing">
-                                    <option value="standard">Standard</option>
-                                    <option value="limited">Limited</option>
-                                    <option value="none">No Sharing</option>
-                                </select>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Save Privacy</button>
-                        </form>
-                    </div>
-                </section>
+                <div id="privacy-section" class="settings-section">
+                    <h3>Privacy Settings</h3>
+                    <p class="section-description">Control who can see your information</p>
+                    <form onsubmit="updatePrivacySettings(event)">
+                        <div class="form-group">
+                            <label>Profile Visibility</label>
+                            <select id="privacy-profile-visibility">
+                                <option value="public">Public - Everyone can see</option>
+                                <option value="private">Private - Only me</option>
+                                <option value="friends">Friends Only</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="privacy-email-visible">
+                                Show email address to others
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="privacy-phone-visible">
+                                Show phone number to others
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>Who can message you</label>
+                            <select id="privacy-message-who">
+                                <option value="everyone">Everyone</option>
+                                <option value="friends">Friends Only</option>
+                                <option value="none">No one</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="privacy-search-visible">
+                                Allow others to find me in search
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="privacy-data-sharing">
+                                Allow data sharing for analytics (anonymized)
+                            </label>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Save Privacy Settings</button>
+                        </div>
+                    </form>
+                </div>
 
                 <!-- Notification Settings -->
-                <section class="settings-panel" data-section="notifications" id="section-notifications">
-                    <div class="settings-section">
-                        <h3>Notification Settings</h3>
-                        <form id="notifications-form">
+                <div id="notifications-section" class="settings-section">
+                    <h3>Notification Settings</h3>
+                    <p class="section-description">Choose how you want to receive updates</p>
+                    <form onsubmit="updateNotificationSettings(event)">
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="notif-email">
+                                Email notifications
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="notif-sms">
+                                SMS notifications
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="notif-push">
+                                Push notifications
+                            </label>
+                        </div>
+                        <div class="section-block">
+                            <h4>What to receive notifications for:</h4>
                             <div class="form-group">
-                                <label class="checkbox-row">
-                                    <input type="checkbox" id="notify-email">
-                                    Email Notifications
+                                <label>
+                                    <input type="checkbox" id="notif-messages" checked>
+                                    New messages
                                 </label>
                             </div>
                             <div class="form-group">
-                                <label class="checkbox-row">
-                                    <input type="checkbox" id="notify-sms">
-                                    SMS Notifications
+                                <label>
+                                    <input type="checkbox" id="notif-alerts" checked>
+                                    Important alerts
                                 </label>
                             </div>
                             <div class="form-group">
-                                <label class="checkbox-row">
-                                    <input type="checkbox" id="notify-push">
-                                    Push Notifications
+                                <label>
+                                    <input type="checkbox" id="notif-promotions">
+                                    Promotional offers
                                 </label>
                             </div>
-                            <div class="form-group">
-                                <label>Notification Types</label>
-                                <div class="settings-grid">
-                                    <label class="checkbox-row">
-                                        <input type="checkbox" id="notify-messages">
-                                        Messages
-                                    </label>
-                                    <label class="checkbox-row">
-                                        <input type="checkbox" id="notify-alerts">
-                                        Alerts
-                                    </label>
-                                    <label class="checkbox-row">
-                                        <input type="checkbox" id="notify-promotions">
-                                        Promotions
-                                    </label>
-                                </div>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Save Notifications</button>
-                        </form>
-                    </div>
-                </section>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Save Notification Settings</button>
+                        </div>
+                    </form>
+                </div>
 
                 <!-- Account Preferences -->
-                <section class="settings-panel" data-section="preferences" id="section-preferences">
-                    <div class="settings-section">
-                        <h3>Account Preferences</h3>
-                        <form id="preferences-form">
+                <div id="preferences-section" class="settings-section">
+                    <h3>Account Preferences</h3>
+                    <p class="section-description">Customize your experience</p>
+                    <form onsubmit="updateAccountPreferences(event)">
+                        <div class="form-group">
+                            <label>Language</label>
+                            <select id="pref-language">
+                                <option value="en">English</option>
+                                <option value="es">Spanish</option>
+                                <option value="fr">French</option>
+                                <option value="de">German</option>
+                                <option value="zh">Chinese</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Time Zone</label>
+                            <select id="pref-timezone">
+                                <option value="UTC">UTC</option>
+                                <option value="America/New_York">Eastern Time (US)</option>
+                                <option value="America/Chicago">Central Time (US)</option>
+                                <option value="America/Denver">Mountain Time (US)</option>
+                                <option value="America/Los_Angeles">Pacific Time (US)</option>
+                                <option value="Europe/London">London</option>
+                                <option value="Europe/Paris">Paris</option>
+                                <option value="Asia/Tokyo">Tokyo</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Theme</label>
+                            <select id="pref-theme">
+                                <option value="light">Light Mode</option>
+                                <option value="dark">Dark Mode</option>
+                                <option value="auto">Auto (System)</option>
+                            </select>
+                        </div>
+                        <div class="section-block">
+                            <h4>Accessibility Options</h4>
                             <div class="form-group">
-                                <label>Language</label>
-                                <select id="pref-language">
-                                    <option value="en">English</option>
-                                    <option value="es">Spanish</option>
-                                    <option value="fr">French</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Time Zone</label>
-                                <input type="text" id="pref-timezone" placeholder="UTC+05:00">
-                            </div>
-                            <div class="form-group">
-                                <label>Theme</label>
-                                <select id="pref-theme">
-                                    <option value="light">Light</option>
-                                    <option value="dark">Dark</option>
-                                    <option value="system">System</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Accessibility: Font Size</label>
+                                <label>Font Size</label>
                                 <select id="pref-font-size">
                                     <option value="small">Small</option>
-                                    <option value="medium">Medium</option>
+                                    <option value="medium" selected>Medium</option>
                                     <option value="large">Large</option>
+                                    <option value="xlarge">Extra Large</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label>Accessibility: Contrast</label>
-                                <select id="pref-contrast">
-                                    <option value="standard">Standard</option>
-                                    <option value="high">High</option>
-                                </select>
+                                <label>
+                                    <input type="checkbox" id="pref-high-contrast">
+                                    High contrast mode
+                                </label>
                             </div>
+                        </div>
+                        <div class="form-actions">
                             <button type="submit" class="btn btn-primary">Save Preferences</button>
-                        </form>
-                    </div>
-                </section>
+                        </div>
+                    </form>
+                </div>
 
                 <!-- Connected Accounts -->
-                <section class="settings-panel" data-section="connected" id="section-connected">
-                    <div class="settings-section">
-                        <h3>Connected Accounts</h3>
-                        <div class="settings-list">
-                            <div class="settings-item">
-                                <div>
-                                    <strong>Google</strong>
-                                    <p class="muted-text">Sign in with Google</p>
-                                </div>
-                                <button type="button" class="btn btn-secondary connect-btn" data-provider="google">Connect</button>
-                            </div>
-                            <div class="settings-item">
-                                <div>
-                                    <strong>Facebook</strong>
-                                    <p class="muted-text">Sign in with Facebook</p>
-                                </div>
-                                <button type="button" class="btn btn-secondary connect-btn" data-provider="facebook">Connect</button>
-                            </div>
-                            <div class="settings-item">
-                                <div>
-                                    <strong>Apple</strong>
-                                    <p class="muted-text">Sign in with Apple</p>
-                                </div>
-                                <button type="button" class="btn btn-secondary connect-btn" data-provider="apple">Connect</button>
-                            </div>
+                <div id="connected-section" class="settings-section">
+                    <h3>Connected Accounts</h3>
+                    <p class="section-description">Manage your third-party account connections</p>
+                    <div id="connected-accounts-list" class="connected-accounts-list">
+                        <div class="loading">Loading connected accounts...</div>
+                    </div>
+                    <div class="section-block" style="margin-top: 2rem;">
+                        <h4>Connect New Account</h4>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                            <button class="btn btn-secondary" onclick="connectAccount('google')">Connect Google</button>
+                            <button class="btn btn-secondary" onclick="connectAccount('facebook')">Connect Facebook</button>
+                            <button class="btn btn-secondary" onclick="connectAccount('apple')">Connect Apple</button>
                         </div>
                     </div>
-                </section>
+                </div>
 
                 <!-- Data & Account Control -->
-                <section class="settings-panel" data-section="data" id="section-data">
-                    <div class="settings-section">
-                        <h3>Data & Account Control</h3>
-                        <div class="settings-list">
-                            <div class="settings-item">
-                                <div>
-                                    <strong>Download Your Data</strong>
-                                    <p class="muted-text">Export your profile and preferences</p>
-                                </div>
-                                <button type="button" class="btn btn-secondary" id="download-data-btn">Download</button>
-                            </div>
-                            <div class="settings-item">
-                                <div>
-                                    <strong>Deactivate Account</strong>
-                                    <p class="muted-text">Temporarily disable your account</p>
-                                </div>
-                                <button type="button" class="btn btn-secondary" id="deactivate-account-btn">Deactivate</button>
-                            </div>
-                            <div class="settings-item">
-                                <div>
-                                    <strong>Delete Account</strong>
-                                    <p class="muted-text">Permanently remove your account</p>
-                                </div>
-                                <button type="button" class="btn btn-secondary" id="delete-account-btn">Delete</button>
-                            </div>
-                        </div>
+                <div id="data-section" class="settings-section">
+                    <h3>Data & Account Control</h3>
+                    <p class="section-description">Manage your data and account</p>
+                    <div class="section-block">
+                        <h4>Download Your Data</h4>
+                        <p>Request a copy of all your personal data stored in our system.</p>
+                        <button class="btn btn-primary" onclick="exportData()">Download My Data</button>
                     </div>
-                </section>
+                    <div class="section-block">
+                        <h4>Deactivate Account</h4>
+                        <p>Temporarily disable your account. You can reactivate it anytime.</p>
+                        <button class="btn btn-warning" onclick="deactivateAccount()">Deactivate Account</button>
+                    </div>
+                    <div class="section-block">
+                        <h4>Delete Account</h4>
+                        <p style="color: var(--danger);"><strong>Warning:</strong> This action cannot be undone. All your data will be permanently deleted.</p>
+                        <button class="btn btn-danger" onclick="deleteAccount()">Delete Account</button>
+                    </div>
+                </div>
 
                 <!-- Help & Support -->
-                <section class="settings-panel" data-section="support" id="section-support">
-                    <div class="settings-section">
-                        <h3>Help & Support</h3>
-                        <div class="settings-list">
-                            <div class="settings-item">
-                                <div>
-                                    <strong>Change Email Help</strong>
-                                    <p class="muted-text">Need help updating your email?</p>
-                                </div>
-                                <a href="#" class="btn btn-secondary support-link" data-help="email">Get Help</a>
-                            </div>
-                            <div class="settings-item">
-                                <div>
-                                    <strong>Password Help</strong>
-                                    <p class="muted-text">Resetting or updating password</p>
-                                </div>
-                                <a href="#" class="btn btn-secondary support-link" data-help="password">Get Help</a>
-                            </div>
-                            <div class="settings-item">
-                                <div>
-                                    <strong>Contact Support</strong>
-                                    <p class="muted-text">Report issues or ask questions</p>
-                                </div>
-                                <a href="mailto:support@baseapp.local" class="btn btn-secondary">Contact</a>
-                            </div>
-                            <div class="settings-item">
-                                <div>
-                                    <strong>Report a Problem</strong>
-                                    <p class="muted-text">Tell us what is not working</p>
-                                </div>
-                                <a href="#" class="btn btn-secondary support-link" data-help="report">Report</a>
-                            </div>
+                <div id="help-section" class="settings-section">
+                    <h3>Help & Support</h3>
+                    <p class="section-description">Get help with your account</p>
+                    <div class="section-block">
+                        <h4>Account Help</h4>
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <button class="btn btn-secondary" onclick="showHelp('change-email')">Help: Change Email</button>
+                            <button class="btn btn-secondary" onclick="showHelp('password')">Help: Password Issues</button>
+                            <button class="btn btn-secondary" onclick="showHelp('2fa')">Help: Two-Factor Authentication</button>
                         </div>
                     </div>
-                </section>
-            </main>
+                    <div class="section-block">
+                        <h4>Contact Support</h4>
+                        <p>Need more help? Contact our support team.</p>
+                        <button class="btn btn-primary" onclick="contactSupport()">Contact Support</button>
+                    </div>
+                    <div class="section-block">
+                        <h4>Report a Problem</h4>
+                        <p>Found a bug or issue? Let us know.</p>
+                        <button class="btn btn-secondary" onclick="reportProblem()">Report Problem</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <script src="config.js"></script>
-    <script src="js/api.js"></script>
+    <div id="message" class="message"></div>
+    <script src="js/app.js"></script>
     <script src="js/settings.js"></script>
 </body>
 </html>

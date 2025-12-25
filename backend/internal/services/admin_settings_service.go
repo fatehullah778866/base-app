@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -45,12 +46,16 @@ func (s *AdminSettingsService) GetSettings(ctx context.Context, adminID uuid.UUI
 }
 
 // GetSystemVerificationCode gets the system-wide verification code
-// For public admin creation, we use the default code
-// For logged-in admins creating other admins, they don't need verification code
+// Gets the code from the first admin's settings, or returns default
 func (s *AdminSettingsService) GetSystemVerificationCode(ctx context.Context) (string, error) {
-	// Return default code for public admin creation
-	// When an admin is logged in and creating another admin, verification is not required
-	return "Kompasstech2025@", nil
+	// Try to get from first admin's settings
+	code, err := s.settingsRepo.GetFirstAdminVerificationCode(ctx)
+	if err != nil {
+		s.logger.Warn("Failed to get verification code from database, using default", zap.Error(err))
+		return "Kompasstech2025@", nil
+	}
+	// Ensure code is trimmed
+	return strings.TrimSpace(code), nil
 }
 
 func (s *AdminSettingsService) UpdateSettings(ctx context.Context, adminID uuid.UUID, updates map[string]interface{}) error {
@@ -72,7 +77,8 @@ func (s *AdminSettingsService) UpdateSettings(ctx context.Context, adminID uuid.
 		settings.ThemePreferences = &theme
 	}
 	if code, ok := updates["admin_verification_code"].(string); ok {
-		settings.AdminVerificationCode = &code
+		trimmedCode := strings.TrimSpace(code)
+		settings.AdminVerificationCode = &trimmedCode
 	}
 
 	settings.UpdatedAt = time.Now()

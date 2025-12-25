@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"math"
 	"strings"
 	"time"
 
@@ -57,11 +58,15 @@ type SearchRequest struct {
 	Category    *string   `json:"category"`
 	Status      *string   `json:"status"`
 	EntityID    *uuid.UUID `json:"entity_id"`  // For custom CRUD search
+	Latitude    *float64  `json:"latitude"`     // For location-based search
+	Longitude   *float64  `json:"longitude"`   // For location-based search
+	Radius      *float64  `json:"radius"`      // Radius in kilometers for "Search Near Me"
 }
 
 // Search performs a comprehensive search across all searchable entities
 func (s *SearchService) Search(ctx context.Context, userID uuid.UUID, req SearchRequest) (*models.SearchResult, error) {
-	if req.Query == "" && req.Location == nil && req.Country == nil && req.City == nil {
+	// Allow search with just coordinates (for "Search Near Me")
+	if req.Query == "" && req.Location == nil && req.Country == nil && req.City == nil && req.Latitude == nil && req.Longitude == nil {
 		return &models.SearchResult{
 			Type: "search_results",
 			ID:   uuid.New().String(),
@@ -189,6 +194,12 @@ func (s *SearchService) Search(ctx context.Context, userID uuid.UUID, req Search
 		}
 	}
 
+	// Filter by radius if coordinates and radius are provided
+	if req.Latitude != nil && req.Longitude != nil && req.Radius != nil {
+		results = s.filterByRadius(results, *req.Latitude, *req.Longitude, *req.Radius)
+		totalCount = len(results)
+	}
+
 	// Save search history
 	history := &models.SearchHistory{
 		ID:           uuid.New(),
@@ -213,6 +224,78 @@ func (s *SearchService) Search(ctx context.Context, userID uuid.UUID, req Search
 			"offset":  req.Offset,
 		},
 	}, nil
+}
+
+// calculateDistance calculates the distance between two coordinates using Haversine formula
+// Returns distance in kilometers
+func calculateDistance(lat1, lon1, lat2, lon2 float64) float64 {
+	const earthRadiusKm = 6371.0 // Earth's radius in kilometers
+
+	// Convert degrees to radians
+	lat1Rad := lat1 * math.Pi / 180.0
+	lon1Rad := lon1 * math.Pi / 180.0
+	lat2Rad := lat2 * math.Pi / 180.0
+	lon2Rad := lon2 * math.Pi / 180.0
+
+	// Haversine formula
+	dlat := lat2Rad - lat1Rad
+	dlon := lon2Rad - lon1Rad
+
+	a := math.Sin(dlat/2)*math.Sin(dlat/2) +
+		math.Cos(lat1Rad)*math.Cos(lat2Rad)*
+			math.Sin(dlon/2)*math.Sin(dlon/2)
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+
+	return earthRadiusKm * c
+}
+
+// filterByRadius filters results by distance from a given point
+func (s *SearchService) filterByRadius(results []models.SearchResult, centerLat, centerLon, radiusKm float64) []models.SearchResult {
+	var filtered []models.SearchResult
+
+	for _, result := range results {
+		var resultLat, resultLon *float64
+
+		// Try to extract coordinates from result Data field
+		// Data can be various types, so we need to handle them all
+		switch data := result.Data.(type) {
+		case map[string]interface{}:
+			// Extract from map
+			if lat, ok := data["latitude"].(float64); ok {
+				resultLat = &lat
+			}
+			if lon, ok := data["longitude"].(float64); ok {
+				resultLon = &lon
+			}
+		case *models.DashboardItem:
+			// Dashboard items might have location in metadata JSON
+			if data.Metadata != nil {
+				var metadata map[string]interface{}
+				if err := json.Unmarshal([]byte(*data.Metadata), &metadata); err == nil {
+					if lat, ok := metadata["latitude"].(float64); ok {
+						resultLat = &lat
+					}
+					if lon, ok := metadata["longitude"].(float64); ok {
+						resultLon = &lon
+					}
+				}
+			}
+		}
+
+		// If result has coordinates, check distance
+		if resultLat != nil && resultLon != nil {
+			distance := calculateDistance(centerLat, centerLon, *resultLat, *resultLon)
+			if distance <= radiusKm {
+				filtered = append(filtered, result)
+			}
+		} else {
+			// If no coordinates, include result (for non-location-based entities)
+			// This allows mixed results when searching "near me"
+			filtered = append(filtered, result)
+		}
+	}
+
+	return filtered
 }
 
 // searchDashboardItems searches dashboard items with advanced filters

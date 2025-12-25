@@ -32,10 +32,10 @@ func (s *CustomCRUDService) CreateEntity(ctx context.Context, createdBy uuid.UUI
 		return nil, errors.New("invalid schema format")
 	}
 
-	// Check if entity name already exists
+	// Check if entity name already exists for this user (allow same name for different users)
 	existing, _ := s.crudRepo.GetEntityByName(ctx, entityName)
-	if existing != nil {
-		return nil, errors.New("entity name already exists")
+	if existing != nil && existing.CreatedBy == createdBy {
+		return nil, errors.New("you already have an entity with this name")
 	}
 
 	entity := &models.CustomCRUDEntity{

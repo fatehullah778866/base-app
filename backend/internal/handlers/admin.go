@@ -20,14 +20,16 @@ type AdminHandler struct {
 	adminService         *services.AdminService
 	adminSettingsService *services.AdminSettingsService
 	customCRUDService    *services.CustomCRUDService
+	crudTemplateService  *services.CRUDTemplateService
 	logger               *zap.Logger
 }
 
-func NewAdminHandler(adminService *services.AdminService, adminSettingsService *services.AdminSettingsService, customCRUDService *services.CustomCRUDService, logger *zap.Logger) *AdminHandler {
+func NewAdminHandler(adminService *services.AdminService, adminSettingsService *services.AdminSettingsService, customCRUDService *services.CustomCRUDService, crudTemplateService *services.CRUDTemplateService, logger *zap.Logger) *AdminHandler {
 	return &AdminHandler{
 		adminService:         adminService,
 		adminSettingsService: adminSettingsService,
 		customCRUDService:    customCRUDService,
+		crudTemplateService:  crudTemplateService,
 		logger:               logger,
 	}
 }
@@ -315,7 +317,15 @@ func (h *AdminHandler) CreateCRUDEntity(w http.ResponseWriter, r *http.Request) 
 
 func (h *AdminHandler) ListCRUDEntities(w http.ResponseWriter, r *http.Request) {
 	activeOnly := r.URL.Query().Get("active_only") == "true"
-	entities, err := h.customCRUDService.ListEntities(r.Context(), nil, activeOnly)
+	// Get user ID from context - if present, filter by user; if admin, show all
+	userID := middleware.GetUserIDFromContext(r.Context())
+	var createdBy *uuid.UUID
+	// If not admin, only show entities created by this user
+	userRole := middleware.GetUserRoleFromContext(r.Context())
+	if userRole != "admin" {
+		createdBy = &userID
+	}
+	entities, err := h.customCRUDService.ListEntities(r.Context(), createdBy, activeOnly)
 	if err != nil {
 		errors.RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
 		return
@@ -507,21 +517,25 @@ func (h *AdminHandler) VerifyAdminCode(w http.ResponseWriter, r *http.Request) {
 		errors.RespondError(w, http.StatusBadRequest, "INVALID_REQUEST", err.Error())
 		return
 	}
-	
+
 	// Get expected code
 	defaultCode := "Kompasstech2025@"
 	expectedCode := defaultCode
-	
+
 	systemCode, err := h.adminSettingsService.GetSystemVerificationCode(r.Context())
 	if err == nil {
 		expectedCode = systemCode
 	}
-	
-	if req.VerificationCode != expectedCode {
+
+	// Trim and compare codes (case-sensitive for security)
+	providedCode := strings.TrimSpace(req.VerificationCode)
+	expectedCode = strings.TrimSpace(expectedCode)
+
+	if providedCode != expectedCode {
 		errors.RespondError(w, http.StatusForbidden, "FORBIDDEN", "Invalid verification code")
 		return
 	}
-	
+
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,
 		"message": "Verification code is valid",
@@ -540,21 +554,25 @@ func (h *AdminHandler) CreateAdminPublic(w http.ResponseWriter, r *http.Request)
 		errors.RespondError(w, http.StatusBadRequest, "INVALID_REQUEST", err.Error())
 		return
 	}
-	
+
 	// Verify code
 	defaultCode := "Kompasstech2025@"
 	expectedCode := defaultCode
-	
+
 	systemCode, err := h.adminSettingsService.GetSystemVerificationCode(r.Context())
 	if err == nil {
 		expectedCode = systemCode
 	}
-	
-	if req.VerificationCode != expectedCode {
+
+	// Trim and compare codes
+	providedCode := strings.TrimSpace(req.VerificationCode)
+	expectedCode = strings.TrimSpace(expectedCode)
+
+	if providedCode != expectedCode {
 		errors.RespondError(w, http.StatusForbidden, "FORBIDDEN", "Invalid verification code")
 		return
 	}
-	
+
 	// Create admin user
 	user, err := h.adminService.CreateUser(r.Context(), uuid.Nil, services.CreateUserRequest{
 		Email:    req.Email,
@@ -571,7 +589,7 @@ func (h *AdminHandler) CreateAdminPublic(w http.ResponseWriter, r *http.Request)
 		errors.RespondError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
 		return
 	}
-	
+
 	respondJSON(w, http.StatusCreated, map[string]interface{}{
 		"success": true,
 		"data": map[string]interface{}{
@@ -597,7 +615,7 @@ func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		errors.RespondError(w, http.StatusBadRequest, "INVALID_REQUEST", err.Error())
 		return
 	}
-	
+
 	// If creating admin, verify code (only for public admin creation)
 	if req.Role == "admin" {
 		adminID := middleware.GetUserIDFromContext(r.Context())
@@ -606,7 +624,7 @@ func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 			// Try to get verification code from first admin's settings, or use default
 			defaultCode := "Kompasstech2025@"
 			expectedCode := defaultCode
-			
+
 			// Try to get from any admin's settings (use first admin found)
 			// For simplicity, we'll use the default code
 			// In production, you might want to query for the first admin and get their settings
@@ -614,22 +632,26 @@ func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 			if err == nil {
 				expectedCode = systemCode
 			}
-			
-			if req.VerificationCode != expectedCode {
+
+			// Trim and compare codes
+			providedCode := strings.TrimSpace(req.VerificationCode)
+			expectedCode = strings.TrimSpace(expectedCode)
+
+			if providedCode != expectedCode {
 				errors.RespondError(w, http.StatusForbidden, "FORBIDDEN", "Invalid verification code")
 				return
 			}
 		}
 		// If adminID != uuid.Nil, an admin is logged in creating another admin - no verification needed
 	}
-	
+
 	if req.Role == "" {
 		req.Role = "user"
 	}
 	if req.Status == "" {
 		req.Status = "active"
 	}
-	
+
 	// Create user via admin service
 	actorID := middleware.GetUserIDFromContext(r.Context())
 	user, err := h.adminService.CreateUser(r.Context(), actorID, services.CreateUserRequest{
@@ -647,7 +669,7 @@ func (h *AdminHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		errors.RespondError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
 		return
 	}
-	
+
 	respondJSON(w, http.StatusCreated, map[string]interface{}{
 		"success": true,
 		"data": map[string]interface{}{

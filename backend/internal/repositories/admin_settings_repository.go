@@ -12,6 +12,7 @@ type AdminSettingsRepository interface {
 	GetByAdminID(ctx context.Context, adminID uuid.UUID) (*models.AdminSettings, error)
 	Create(ctx context.Context, settings *models.AdminSettings) error
 	Update(ctx context.Context, settings *models.AdminSettings) error
+	GetFirstAdminVerificationCode(ctx context.Context) (string, error) // Get verification code from first admin
 }
 
 type CustomCRUDRepository interface {

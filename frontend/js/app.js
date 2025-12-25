@@ -1,428 +1,505 @@
-// Main App Logic for index.html
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM loaded, setting up...');
-    setupAuthNavigation();
-    setupForms();
-    console.log('Setup complete');
-});
+const API_BASE_URL = 'http://localhost:8080/v1';
 
-function setupAuthNavigation() {
-    // Show login by default
-    showSection('login');
-
-    // Navigation links - use both onclick and addEventListener for maximum compatibility
-    function attachLinkHandlers() {
-        const showSignupLink = document.getElementById('show-signup');
-        const showLoginLink = document.getElementById('show-login');
-        const showForgotLink = document.getElementById('show-forgot');
-        const showAdminLink = document.getElementById('show-admin');
-        
-        if (showSignupLink) {
-            showSignupLink.onclick = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Signup clicked');
-                showSection('signup');
-                return false;
-            };
-            showSignupLink.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                showSection('signup');
-            });
-        }
-
-        if (showLoginLink) {
-            showLoginLink.onclick = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                showSection('login');
-                return false;
-            };
-            showLoginLink.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                showSection('login');
-            });
-        }
-
-        if (showForgotLink) {
-            showForgotLink.onclick = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Forgot password clicked');
-                showSection('forgot');
-                return false;
-            };
-            showForgotLink.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                showSection('forgot');
-            });
-        }
-
-        if (showAdminLink) {
-            showAdminLink.onclick = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Admin clicked');
-                showSection('admin');
-                return false;
-            };
-            showAdminLink.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                showSection('admin');
-            });
-        }
-    }
-    
-    // Attach immediately
-    attachLinkHandlers();
-    
-    // Also attach after a short delay to ensure DOM is ready
-    setTimeout(attachLinkHandlers, 100);
-
-    document.getElementById('back-to-login')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        showSection('login');
-    });
-
-    document.getElementById('back-to-login-from-admin')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        showSection('login');
-    });
-
-    // Admin buttons - use onclick for reliability
-    setTimeout(() => {
-        const adminLoginBtn = document.getElementById('admin-login-btn');
-        const createAdminBtn = document.getElementById('create-admin-btn');
-        
-        if (adminLoginBtn) {
-            adminLoginBtn.onclick = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                document.getElementById('admin-login-form').style.display = 'block';
-                document.getElementById('verification-form').style.display = 'none';
-                document.getElementById('create-admin-form').style.display = 'none';
-            };
-        }
-        
-        if (createAdminBtn) {
-            createAdminBtn.onclick = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                document.getElementById('verification-form').style.display = 'block';
-                document.getElementById('admin-login-form').style.display = 'none';
-                document.getElementById('create-admin-form').style.display = 'none';
-                const codeInput = document.getElementById('verification-code');
-                if (codeInput) codeInput.value = '';
-                sessionStorage.removeItem('admin_verification_code');
-            };
-        }
-    }, 100);
-
-    document.getElementById('cancel-admin-login')?.addEventListener('click', () => {
-        document.getElementById('admin-login-form').style.display = 'none';
-    });
-
-    document.getElementById('cancel-verification')?.addEventListener('click', () => {
-        document.getElementById('verification-form').style.display = 'none';
-        document.getElementById('verification-code').value = '';
-        sessionStorage.removeItem('admin_verification_code');
-    });
-
-    document.getElementById('cancel-create-admin')?.addEventListener('click', () => {
-        document.getElementById('create-admin-form').style.display = 'none';
-        document.getElementById('verification-form').style.display = 'block';
-        // Clear signup form
-        document.getElementById('new-admin-name').value = '';
-        document.getElementById('new-admin-email').value = '';
-        document.getElementById('new-admin-password').value = '';
-    });
-}
-
-function showSection(sectionName) {
-    document.querySelectorAll('.auth-section').forEach(section => {
-        section.classList.remove('active');
-    });
-    const section = document.getElementById(`${sectionName}-section`);
-    if (section) {
-        section.classList.add('active');
-    }
-    // Hide admin forms when switching
-    if (sectionName !== 'admin') {
-        const adminLoginForm = document.getElementById('admin-login-form');
-        const verificationForm = document.getElementById('verification-form');
-        const createAdminForm = document.getElementById('create-admin-form');
-        if (adminLoginForm) adminLoginForm.style.display = 'none';
-        if (verificationForm) verificationForm.style.display = 'none';
-        if (createAdminForm) createAdminForm.style.display = 'none';
-        sessionStorage.removeItem('admin_verification_code');
-    } else {
-        // When showing admin section, reset to initial state and setup buttons
-        const adminLoginForm = document.getElementById('admin-login-form');
-        const verificationForm = document.getElementById('verification-form');
-        const createAdminForm = document.getElementById('create-admin-form');
-        const codeInput = document.getElementById('verification-code');
-        if (adminLoginForm) adminLoginForm.style.display = 'none';
-        if (verificationForm) verificationForm.style.display = 'none';
-        if (createAdminForm) createAdminForm.style.display = 'none';
-        if (codeInput) codeInput.value = '';
-        
-        // Setup buttons when admin section is shown
-        setTimeout(() => {
-            const adminLoginBtn = document.getElementById('admin-login-btn');
-            const createAdminBtn = document.getElementById('create-admin-btn');
-            
-            if (adminLoginBtn) {
-                adminLoginBtn.onclick = function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (adminLoginForm) adminLoginForm.style.display = 'block';
-                    if (verificationForm) verificationForm.style.display = 'none';
-                    if (createAdminForm) createAdminForm.style.display = 'none';
-                };
-            }
-            
-            if (createAdminBtn) {
-                createAdminBtn.onclick = function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (verificationForm) verificationForm.style.display = 'block';
-                    if (adminLoginForm) adminLoginForm.style.display = 'none';
-                    if (createAdminForm) createAdminForm.style.display = 'none';
-                    if (codeInput) codeInput.value = '';
-                    sessionStorage.removeItem('admin_verification_code');
-                };
-            }
-        }, 50);
-    }
-}
-
-function setupForms() {
-    // Login form
-    const loginForm = document.getElementById('login-form');
-    if (loginForm) {
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const email = document.getElementById('login-email')?.value;
-            const password = document.getElementById('login-password')?.value;
-
-            if (!email || !password) {
-                showMessage('Please fill in all fields', 'error');
-                return false;
-            }
-
-            try {
-                const response = await authAPI.login({ email, password });
-                if (response.success && response.data) {
-                    localStorage.setItem('access_token', response.data.session.token);
-                    if (response.data.session.refresh_token) {
-                        localStorage.setItem('refresh_token', response.data.session.refresh_token);
-                    }
-                    localStorage.setItem('user', JSON.stringify(response.data.user));
-                    
-                    const role = response.data.user.role || 'user';
-                    showMessage('Login successful! Redirecting...', 'success');
-                    setTimeout(() => {
-                        if (role === 'admin') {
-                            redirect('admin-dashboard.html');
-                        } else {
-                            redirect('dashboard.html');
-                        }
-                    }, 1000);
-                }
-            } catch (error) {
-                showMessage(error.message || 'Login failed', 'error');
-            }
-            return false;
-        });
+// API Client
+class API {
+    constructor() {
+        this.baseURL = API_BASE_URL;
     }
 
-    // Signup form
-    document.getElementById('signup-form')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = document.getElementById('signup-name').value;
-        const email = document.getElementById('signup-email').value;
-        const password = document.getElementById('signup-password').value;
-        const termsAccepted = document.getElementById('signup-terms')?.checked;
+    async request(endpoint, options = {}) {
+        const url = `${this.baseURL}${endpoint}`;
+        const token = localStorage.getItem('access_token');
 
-        if (!termsAccepted) {
-            showMessage('Please accept the Terms of Service to continue', 'error');
-            return;
+        const config = {
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token && { 'Authorization': `Bearer ${token}` }),
+                ...options.headers,
+            },
+        };
+
+        if (options.body && typeof options.body === 'object') {
+            config.body = JSON.stringify(options.body);
         }
 
         try {
-            const response = await authAPI.signup({
-                name,
-                email,
-                password,
-                terms_accepted: true,
-                terms_version: 'v1',
-                marketing_consent: false,
-            });
-            if (response.success) {
-                showMessage('Account created! Please login.', 'success');
-                setTimeout(() => showSection('login'), 2000);
-            }
-        } catch (error) {
-            showMessage(error.message || 'Signup failed', 'error');
-        }
-    });
-
-    // Forgot password form
-    document.getElementById('forgot-form')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('forgot-email').value;
-
-        try {
-            await authAPI.forgotPassword({ email });
-            showMessage('Password reset link sent to your email', 'success');
-        } catch (error) {
-            showMessage(error.message || 'Failed to send reset link', 'error');
-        }
-    });
-
-    // Admin login form
-    document.getElementById('admin-login-form-submit')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('admin-email').value;
-        const password = document.getElementById('admin-password').value;
-
-        try {
-            const response = await adminAPI.login({ email, password });
-            if (response.success && response.data) {
-                localStorage.setItem('access_token', response.data.session.token);
-                if (response.data.session.refresh_token) {
-                    localStorage.setItem('refresh_token', response.data.session.refresh_token);
-                }
-                localStorage.setItem('user', JSON.stringify(response.data.admin));
-                showMessage('Admin login successful! Redirecting...', 'success');
-                setTimeout(() => redirect('admin-dashboard.html'), 1000);
-            }
-        } catch (error) {
-            showMessage(error.message || 'Admin login failed', 'error');
-        }
-    });
-
-    // Verification form (Step 1) - Verify code first
-    document.getElementById('verification-form-submit')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const verificationCode = document.getElementById('verification-code').value.trim();
-
-        if (!verificationCode) {
-            showMessage('Please enter verification code', 'error');
-            return;
-        }
-
-        try {
-            // Verify the code with backend
-            const response = await fetch(`${API_BASE_URL}/admin/verify-code`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ verification_code: verificationCode }),
-            });
-
-            const contentType = response.headers.get('content-type') || '';
+            const response = await fetch(url, config);
             let data;
             
-            if (contentType.includes('application/json')) {
-                const text = await response.text();
-                if (!text || text.trim() === '') {
-                    throw new Error('Empty response from server');
+            // Handle 401 Unauthorized - but don't redirect for login/signup endpoints
+            if (response.status === 401) {
+                const path = window.location.pathname;
+                const isAuthEndpoint = endpoint.includes('/auth/login') || 
+                                     endpoint.includes('/auth/signup') ||
+                                     endpoint.includes('/admin/login');
+                
+                // Only clear tokens and redirect if not on login page and not an auth endpoint
+                // For auth endpoints, let the error be handled normally (show error message)
+                if (!isAuthEndpoint && path !== '/' && path !== '/index.html') {
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('user');
+                    window.location.href = '/';
+                    throw new Error('UNAUTHORIZED'); // Throw to stop execution
                 }
+            }
+            
+            // Try to parse JSON, but handle non-JSON responses
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
                 try {
-                    data = JSON.parse(text);
-                } catch (parseError) {
-                    throw new Error(`Server response error: ${text.substring(0, 100)}`);
+                    data = await response.json();
+                } catch (e) {
+                    const text = await response.text();
+                    if (!response.ok) {
+                        throw new Error(text || 'Invalid response from server');
+                    }
+                    data = {};
                 }
             } else {
                 const text = await response.text();
-                throw new Error(`Server error: ${text || 'Unknown error'}`);
+                if (!response.ok) {
+                    throw new Error(text || 'Invalid response from server');
+                }
+                data = {};
             }
 
-            if (response.ok && data.success) {
-                // Code is valid - store and show signup form
-                sessionStorage.setItem('admin_verification_code', verificationCode);
-                showMessage('Verification successful! Please fill the form below.', 'success');
-                document.getElementById('verification-form').style.display = 'none';
-                document.getElementById('create-admin-form').style.display = 'block';
-            } else {
-                // Invalid code - don't show signup form
-                const errorMsg = data.error?.message || 'Invalid verification code';
-                showMessage(errorMsg, 'error');
-                // Keep verification form visible
+            if (!response.ok) {
+                // Handle different error formats
+                let errorMessage = 'Request failed';
+                if (data && data.error) {
+                    if (typeof data.error === 'string') {
+                        errorMessage = data.error;
+                    } else if (data.error.message) {
+                        errorMessage = data.error.message;
+                    } else if (data.error.code) {
+                        errorMessage = data.error.code;
+                    }
+                } else if (data && data.message) {
+                    errorMessage = data.message;
+                }
+                throw new Error(errorMessage);
             }
+
+            return data;
         } catch (error) {
-            if (error.message && error.message.includes('JSON')) {
-                showMessage('Server response error. Please check backend.', 'error');
+            console.error('API Error:', error);
+            // Ensure we always throw an Error object with a string message
+            if (error instanceof Error) {
+                throw error;
+            } else if (typeof error === 'string') {
+                throw new Error(error);
             } else {
-                showMessage(error.message || 'Failed to verify code', 'error');
+                throw new Error('An unexpected error occurred');
             }
         }
-    });
+    }
 
-    // Create admin form (Step 2)
-    document.getElementById('create-admin-form-submit')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const verificationCode = sessionStorage.getItem('admin_verification_code');
-        const name = document.getElementById('new-admin-name').value;
-        const email = document.getElementById('new-admin-email').value;
-        const password = document.getElementById('new-admin-password').value;
+    get(endpoint) {
+        return this.request(endpoint, { method: 'GET' });
+    }
 
-        if (!verificationCode || !name || !email || !password) {
-            showMessage('Please fill all fields', 'error');
-            return;
-        }
+    post(endpoint, body) {
+        return this.request(endpoint, { method: 'POST', body });
+    }
 
-        try {
-            const response = await adminAPI.createAdminPublic({
-                name,
-                email,
-                password,
-                verification_code: verificationCode,
-            });
+    put(endpoint, body) {
+        return this.request(endpoint, { method: 'PUT', body });
+    }
 
-            if (response.success) {
-                showMessage('Admin created successfully! Please login.', 'success');
-                sessionStorage.removeItem('admin_verification_code');
-                document.getElementById('create-admin-form').style.display = 'none';
-                document.getElementById('admin-login-form').style.display = 'block';
-                document.getElementById('admin-email').value = email;
-                // Clear form
-                document.getElementById('new-admin-name').value = '';
-                document.getElementById('new-admin-email').value = '';
-                document.getElementById('new-admin-password').value = '';
-            }
-        } catch (error) {
-            showMessage(error.message || 'Failed to create admin', 'error');
-            // If verification failed, go back to verification form
-            if (error.message && error.message.includes('verification')) {
-                document.getElementById('create-admin-form').style.display = 'none';
-                document.getElementById('verification-form').style.display = 'block';
-                sessionStorage.removeItem('admin_verification_code');
-            }
-        }
-    });
-}
-
-function showMessage(message, type) {
-    const messageEl = document.getElementById('message');
-    if (messageEl) {
-        messageEl.textContent = message;
-        messageEl.className = `message ${type}`;
-        messageEl.style.display = 'block';
-        setTimeout(() => {
-            messageEl.style.display = 'none';
-        }, 5000);
+    delete(endpoint) {
+        return this.request(endpoint, { method: 'DELETE' });
     }
 }
 
-function redirect(url) {
-    window.location.href = url;
+const api = new API();
+
+// Auth Functions
+async function handleLogin(e) {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+
+    if (!email || !password) {
+        showMessage('Please enter both email and password', 'error');
+        return;
+    }
+
+    try {
+        // Show loading state
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn ? submitBtn.textContent : 'Login';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Logging in...';
+        }
+
+        const response = await api.post('/auth/login', { email, password });
+        
+        // Extract data from nested response structure
+        // Backend returns: { success: true, data: { user: {...}, session: {...} } }
+        const data = response.data || response;
+        const user = data.user || {};
+        const session = data.session || {};
+        
+        // Store token (try multiple possible locations)
+        const token = session.token || data.token || response.access_token || response.token;
+        if (!token) {
+            throw new Error('No authentication token received from server');
+        }
+        localStorage.setItem('access_token', token);
+        
+        // Store user info
+        if (user && Object.keys(user).length > 0) {
+            localStorage.setItem('user', JSON.stringify(user));
+        } else {
+            throw new Error('No user data received from server');
+        }
+        
+        // Check if admin and redirect
+        const role = user.role || 'user';
+        showMessage('Login successful! Redirecting...', 'success');
+        
+        // Small delay to show success message
+        setTimeout(() => {
+            if (role === 'admin') {
+                window.location.href = '/admin-dashboard';
+            } else {
+                window.location.href = '/dashboard';
+            }
+        }, 500);
+    } catch (error) {
+        // Restore button state
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Login';
+        }
+        
+        const errorMsg = getErrorMessage(error);
+        console.error('Login error:', error, errorMsg);
+        showMessage(errorMsg, 'error');
+    }
 }
+
+async function handleSignup(e) {
+    e.preventDefault();
+    const name = document.getElementById('signup-name').value;
+    const email = document.getElementById('signup-email').value;
+    const password = document.getElementById('signup-password').value;
+    const termsAccepted = document.getElementById('signup-terms').checked;
+
+    if (!termsAccepted) {
+        showMessage('Please accept the terms and conditions', 'error');
+        return;
+    }
+
+    try {
+        const response = await api.post('/auth/signup', {
+            name,
+            email,
+            password,
+            terms_accepted: true,
+            terms_version: '1.0'
+        });
+        
+        showMessage('Account created successfully! Please login.', 'success');
+        setTimeout(() => switchTab('login'), 2000);
+    } catch (error) {
+        showMessage(getErrorMessage(error), 'error');
+    }
+}
+
+async function handleAdminLogin(e) {
+    e.preventDefault();
+    const email = document.getElementById('admin-email').value.trim();
+    const password = document.getElementById('admin-password').value;
+    const code = document.getElementById('admin-code').value.trim();
+
+    if (!email || !password || !code) {
+        showMessage('Please fill in all fields', 'error');
+        return;
+    }
+
+    try {
+        // First verify admin code (backend expects 'verification_code')
+        await api.post('/admin/verify-code', { verification_code: code });
+        
+        // Then login
+        const response = await api.post('/admin/login', { email, password });
+        
+        // Extract data from nested response structure
+        const data = response.data || response;
+        const admin = data.admin || data.user || {};
+        const session = data.session || {};
+        
+        // Store token (try multiple possible locations)
+        const token = session.token || data.token || response.access_token || response.token;
+        if (token) {
+            localStorage.setItem('access_token', token);
+        }
+        
+        // Store user info (use admin data if available, otherwise user)
+        const userData = admin.id ? admin : user;
+        if (userData && Object.keys(userData).length > 0) {
+            localStorage.setItem('user', JSON.stringify(userData));
+        }
+        
+        window.location.href = '/admin-dashboard';
+    } catch (error) {
+        showMessage(getErrorMessage(error), 'error');
+    }
+}
+
+async function handleAdminVerify(e) {
+    e.preventDefault();
+    const code = document.getElementById('verify-code').value.trim();
+
+    if (!code) {
+        showMessage('Please enter a verification code', 'error');
+        return;
+    }
+
+    try {
+        // Backend expects 'verification_code' not 'code'
+        await api.post('/admin/verify-code', { verification_code: code });
+        showMessage('Verification code accepted! Please fill in your admin details.', 'success');
+        // Store verified code for signup
+        sessionStorage.setItem('admin_verified_code', code);
+        setTimeout(() => switchTab('admin-signup'), 1500);
+    } catch (error) {
+        showMessage(getErrorMessage(error), 'error');
+    }
+}
+
+async function handleAdminSignup(e) {
+    e.preventDefault();
+    const name = document.getElementById('admin-signup-name').value.trim();
+    const email = document.getElementById('admin-signup-email').value.trim();
+    const password = document.getElementById('admin-signup-password').value;
+    const termsAccepted = document.getElementById('admin-signup-terms').checked;
+    const verifiedCode = sessionStorage.getItem('admin_verified_code');
+    
+    if (!name || !email || !password) {
+        showMessage('Please fill in all required fields', 'error');
+        return;
+    }
+
+    if (!termsAccepted) {
+        showMessage('Please accept the terms and conditions', 'error');
+        return;
+    }
+
+    if (!verifiedCode) {
+        showMessage('Please verify the admin code first', 'error');
+        switchTab('admin-verify');
+        return;
+    }
+
+    try {
+        const response = await api.post('/admin/create', {
+            name,
+            email,
+            password,
+            verification_code: verifiedCode,
+            terms_accepted: true,
+            terms_version: '1.0'
+        });
+        
+        showMessage('Admin account created successfully! Please login.', 'success');
+        sessionStorage.removeItem('admin_verified_code');
+        setTimeout(() => switchTab('admin-login'), 2000);
+    } catch (error) {
+        showMessage(getErrorMessage(error), 'error');
+    }
+}
+
+// Helper function to extract error message
+function getErrorMessage(error) {
+    if (error instanceof Error) {
+        return error.message;
+    } else if (typeof error === 'string') {
+        return error;
+    } else if (error && typeof error === 'object') {
+        if (error.message) {
+            return error.message;
+        } else if (error.error) {
+            if (typeof error.error === 'string') {
+                return error.error;
+            } else if (error.error.message) {
+                return error.error.message;
+            }
+        }
+    }
+    return 'An unexpected error occurred';
+}
+
+function logout() {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('user');
+    window.location.href = '/';
+}
+
+// Tab Switching
+function switchTab(tab) {
+    document.querySelectorAll('.form-container').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+    if (tab === 'login') {
+        document.getElementById('login-form').classList.add('active');
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+    } else if (tab === 'signup') {
+        document.getElementById('signup-form').classList.add('active');
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+    } else if (tab === 'admin-login') {
+        document.getElementById('admin-login-form').classList.add('active');
+    } else if (tab === 'admin-verify') {
+        document.getElementById('admin-verify-form').classList.add('active');
+    } else if (tab === 'admin-signup') {
+        document.getElementById('admin-signup-form').classList.add('active');
+    } else if (tab === 'forgot-password') {
+        document.getElementById('forgot-password-form').classList.add('active');
+    } else if (tab === 'reset-password') {
+        document.getElementById('reset-password-form').classList.add('active');
+    }
+}
+
+// Forgot Password
+async function handleForgotPassword(e) {
+    e.preventDefault();
+    const email = document.getElementById('forgot-email').value;
+
+    try {
+        await api.post('/auth/forgot-password', { email });
+        showMessage('If an account exists with this email, a password reset link has been sent. Please check your email.', 'success');
+        setTimeout(() => switchTab('login'), 3000);
+    } catch (error) {
+        showMessage(getErrorMessage(error), 'error');
+    }
+}
+
+// Reset Password
+async function handleResetPassword(e) {
+    e.preventDefault();
+    const token = document.getElementById('reset-token').value;
+    const newPassword = document.getElementById('reset-new-password').value;
+    const confirmPassword = document.getElementById('reset-confirm-password').value;
+
+    if (newPassword !== confirmPassword) {
+        showMessage('Passwords do not match', 'error');
+        return;
+    }
+
+    try {
+        await api.post('/auth/reset-password', {
+            token: token,
+            new_password: newPassword
+        });
+        showMessage('Password reset successfully! Please login with your new password.', 'success');
+        setTimeout(() => switchTab('login'), 2000);
+    } catch (error) {
+        showMessage(getErrorMessage(error), 'error');
+    }
+}
+
+// Check for reset token in URL
+window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    if (token) {
+        document.getElementById('reset-token').value = token;
+        switchTab('reset-password');
+    }
+});
+
+// Message Display
+function showMessage(text, type = 'info') {
+    const messageEl = document.getElementById('message');
+    // Ensure text is always a string
+    const messageText = typeof text === 'string' ? text : String(text);
+    messageEl.textContent = messageText;
+    messageEl.className = `message ${type} active`;
+    
+    setTimeout(() => {
+        messageEl.classList.remove('active');
+    }, 3000);
+}
+
+// Modal Functions
+function openModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.classList.add('active');
+    }
+}
+
+function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.classList.remove('active');
+        
+        // Clean up map if advanced search modal is closed
+        if (id === 'advanced-search-modal' && window._searchMapInstance) {
+            try {
+                window._searchMapInstance.remove();
+                window._searchMapInstance = null;
+            } catch (e) {
+                console.error('Error cleaning up map:', e);
+            }
+        }
+    }
+}
+
+// Close modal on outside click
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('modal')) {
+        e.target.classList.remove('active');
+    }
+});
+
+// Check auth on page load
+window.addEventListener('DOMContentLoaded', () => {
+    const token = localStorage.getItem('access_token');
+    const userStr = localStorage.getItem('user');
+    let user = null;
+    
+    try {
+        user = userStr ? JSON.parse(userStr) : null;
+    } catch (e) {
+        console.error('Failed to parse user from localStorage:', e);
+        localStorage.removeItem('user');
+    }
+    
+    const path = window.location.pathname;
+    
+    if (token && user && user.role) {
+        if (path === '/' || path === '/index.html') {
+            if (user.role === 'admin') {
+                window.location.href = '/admin-dashboard';
+            } else {
+                window.location.href = '/dashboard';
+            }
+        } else if (path === '/dashboard' && user.role === 'admin') {
+            window.location.href = '/admin-dashboard';
+        } else if (path === '/admin-dashboard' && user.role !== 'admin') {
+            window.location.href = '/dashboard';
+        }
+    } else if (path !== '/' && path !== '/index.html') {
+        // No valid auth, redirect to login
+        window.location.href = '/';
+    }
+});
+
+// Export API for other scripts
+window.api = api;
+window.showMessage = showMessage;
+window.openModal = openModal;
+window.closeModal = closeModal;
+window.logout = logout;
+window.getErrorMessage = getErrorMessage;
+window.switchTab = switchTab;
+window.handleAdminVerify = handleAdminVerify;
+window.handleAdminSignup = handleAdminSignup;
+window.handleForgotPassword = handleForgotPassword;
+window.handleResetPassword = handleResetPassword;
 
