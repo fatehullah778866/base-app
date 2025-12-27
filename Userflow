@@ -1,0 +1,161 @@
+ flowchart TD
+
+%% =========================
+%% ENTRY
+%% =========================
+A0([Start]) --> A1[Open App\n/index.html]
+A1 --> A2{Already logged in?\n(token exists + valid)}
+A2 -->|No| L1[Login / Signup Screen]
+A2 -->|Yes| D0[Dashboard\n/dashboard.html]
+
+%% =========================
+%% AUTH
+%% =========================
+L1 --> L2{Choose action}
+L2 -->|Login| L3[Enter email + password]
+L2 -->|Signup| L4[Enter signup details]
+L2 -->|Forgot Password| L5[Request password reset]
+
+L3 --> L6{Login success?}
+L4 --> L7{Signup success?}
+L5 --> L8{Reset email sent?}
+
+L6 -->|No| L1e[Show error\nstay on login]
+L6 -->|Yes| L9[Store tokens\nlocalStorage] --> D0
+
+L7 -->|No| L1e
+L7 -->|Yes| L9
+
+L8 -->|No| L5e[Show error / retry]
+L8 -->|Yes| L5s[Show confirmation\ncheck email] --> L1
+
+%% =========================
+%% APP SHELL NAV
+%% =========================
+D0 --> N0{Navigate}
+N0 -->|Dashboard items| D1[View dashboard items]
+N0 -->|Settings| S0[Open Settings\n/settings.html]
+N0 -->|Search| SR0[Open Search\n(in dashboard or dedicated area)]
+N0 -->|Messaging| M0[Open Messaging]
+N0 -->|Notifications| N1[Open Notifications]
+N0 -->|Theme| T0[Theme / Appearance]
+N0 -->|File Upload| F0[Upload a file]
+N0 -->|Admin (if role)| AD0[Admin Dashboard\n/admin-dashboard.html]
+N0 -->|Logout| O0[Logout]
+
+%% =========================
+%% DASHBOARD
+%% =========================
+D1 --> D2{Action}
+D2 -->|Create| D3[Create dashboard item]
+D2 -->|Edit| D4[Edit dashboard item]
+D2 -->|Delete| D5[Delete dashboard item]
+D2 -->|Refresh| D6[Reload data]
+
+D3 --> D7{Success?}
+D4 --> D7
+D5 --> D7
+D6 --> D7
+
+D7 -->|No| D8[Show error]
+D7 -->|Yes| D9[Show updated dashboard list] --> D1
+
+%% =========================
+%% SETTINGS
+%% =========================
+S0 --> S1{Settings area}
+S1 -->|Profile| S2[Update profile details]
+S1 -->|Security| S3[Change password / sessions]
+S1 -->|Preferences| S4[Update preferences]
+S1 -->|Devices| S5[View devices / revoke device]
+
+S2 --> S6{Saved?}
+S3 --> S6
+S4 --> S6
+S5 --> S6
+
+S6 -->|No| S7[Show error]
+S6 -->|Yes| S8[Show success + reflect changes] --> S0
+
+%% =========================
+%% SEARCH
+%% =========================
+SR0 --> SR1[Enter query / filters]
+SR1 --> SR2{Results found?}
+SR2 -->|No| SR3[Show empty state]
+SR2 -->|Yes| SR4[Show results list]
+SR4 --> SR5{Open result?}
+SR5 -->|Yes| SR6[Open detail / related item]
+SR5 -->|No| SR1
+
+%% =========================
+%% MESSAGING
+%% =========================
+M0 --> M1{Action}
+M1 -->|View inbox| M2[View conversations]
+M1 -->|Open thread| M3[View messages]
+M1 -->|Send message| M4[Compose + send]
+M1 -->|Delete/Archive| M5[Update message state]
+
+M4 --> M6{Sent?}
+M5 --> M6
+M6 -->|No| M7[Show error]
+M6 -->|Yes| M8[Update thread UI] --> M3
+
+%% =========================
+%% NOTIFICATIONS
+%% =========================
+N1 --> N2[View notifications list]
+N2 --> N3{Action}
+N3 -->|Mark read| N4[Mark as read]
+N3 -->|Open| N5[Go to related entity]
+N3 -->|Clear| N6[Clear notifications]
+
+N4 --> N7{Success?}
+N6 --> N7
+N7 -->|No| N8[Show error]
+N7 -->|Yes| N9[Refresh list] --> N2
+
+%% =========================
+%% THEME
+%% =========================
+T0 --> T1[Choose theme (light/dark/etc.)]
+T1 --> T2{Saved?}
+T2 -->|No| T3[Show error]
+T2 -->|Yes| T4[Apply theme + persist] --> T0
+
+%% =========================
+%% FILE UPLOAD
+%% =========================
+F0 --> F1[Pick file]
+F1 --> F2{Valid file?\n(size/type checks)}
+F2 -->|No| F3[Show validation error]
+F2 -->|Yes| F4[Upload request]
+
+F4 --> F5{Upload success?}
+F5 -->|No| F6[Show error / retry]
+F5 -->|Yes| F7[Show uploaded file\n(+ link/preview)] --> D0
+
+%% =========================
+%% ADMIN
+%% =========================
+AD0 --> AD1{Admin action}
+AD1 -->|Manage users| AD2[User management]
+AD1 -->|Admin settings| AD3[Update admin settings]
+AD1 -->|Access requests| AD4[Review + approve/deny]
+AD1 -->|CRUD templates| AD5[Create/edit templates]
+AD1 -->|Activity logs| AD6[View audit/activity logs]
+
+AD2 --> AD7{Success?}
+AD3 --> AD7
+AD4 --> AD7
+AD5 --> AD7
+
+AD7 -->|No| AD8[Show error]
+AD7 -->|Yes| AD9[Show updated admin state] --> AD0
+
+%% =========================
+%% LOGOUT
+%% =========================
+O0 --> O1[Clear tokens + session]
+O1 --> A1
