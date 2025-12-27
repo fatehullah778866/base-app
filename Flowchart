@@ -1,0 +1,97 @@
+flowchart LR
+
+%% =========================
+%% SWIMLANES (SUBGRAPHS)
+%% =========================
+
+subgraph L1[User]
+  U1[User clicks / types\n(login, dashboard, settings, admin, etc.)]
+  U2[Sees UI result\n(success / error / redirect)]
+end
+
+subgraph L2[Browser / Frontend (Vanilla JS)]
+  F1[HTML page\nfrontend/index.html | dashboard.html | settings.html | admin-dashboard.html]
+  F2[JS modules\nfrontend/js/app.js + navbar.js\n(+ dashboard.js / settings.js / admin.js)]
+  F3[Read/Write localStorage\nJWT + refresh token]
+  F4[Fetch API request\nGET/POST/PUT/DELETE\nBase: http://localhost:8080/v1]
+  F5[Render UI state\nDOM updates + errors + loading]
+  F6[Map flow (optional)\nLeaflet + Nominatim]
+end
+
+subgraph L3[HTTP Server / Router Layer (Go)]
+  H0[Entry point\nbackend/cmd/server/main.go]
+  H1[Gorilla Mux routes\nhandlers wired under /v1]
+  M1[Middleware chain\nrequest_id → logging → recovery\nsecurity_headers → cors → rate_limit\n(auth?) → csrf? → size_limit?]
+  H2[Handler (Presentation)\nbackend/internal/handlers/*.go\n(auth, dashboard, settings, admin,\nsearch, messaging, notifications,\nfile_upload, theme, user, request...)]
+  H3[Validate input\nvalidator/v10 + request parsing]
+end
+
+subgraph L4[Service Layer (Business Logic)]
+  S1[Service\nbackend/internal/services/*.go\n(auth_service, user_service,\nsettings_service, dashboard_service,\nadmin_service, messaging_service,\nnotification_service, search_service,\nfile_service, request_service,\ntheme_service...)]
+  S2[Cache (optional)\nbackend/internal/cache/cache.go]
+  S3[Side-effects (optional)\nemail_service.go\nwebhooks/emitter.go]
+end
+
+subgraph L5[Repository / Data Access]
+  R1[Repository interface\nbackend/internal/repositories/*_repository.go]
+  R2[Repository implementation (SQLite)\nbackend/internal/repositories/*_impl.go]
+end
+
+subgraph L6[SQLite Database]
+  D1[(SQLite\nbackend/app.db)]
+  D2[Migrations\nbackend/migrations/*.sql]
+end
+
+subgraph L7[External Systems (Optional)]
+  X1[Nominatim API\n(geocoding for maps)]
+  X2[Email Queue Job\nbackend/internal/jobs/email_queue.go]
+  X3[Webhook Dispatcher\nbackend/internal/webhooks/dispatcher.go]
+  X4[3rd-party Webhook Targets\n(whatever endpoints you configure)]
+end
+
+%% =========================
+%% PRIMARY FLOW
+%% =========================
+
+U1 --> F1 --> F2 --> F3 --> F4 --> H0 --> H1 --> M1 --> H2 --> H3 --> S1
+
+%% =========================
+%% DB / CACHE PATHS
+%% =========================
+
+S1 -->|read/write| R1 --> R2 --> D1
+D2 -.-> D1
+
+S1 -->|optional read-through| S2
+S2 -->|hit| S1
+S2 -->|miss| R1
+
+%% =========================
+%% SIDE EFFECTS (OPTIONAL)
+%% =========================
+
+S1 -->|password reset / notifications| S3
+S3 -->|enqueue/send| X2
+S3 -->|emit event| X3 --> X4
+
+%% =========================
+%% FRONTEND MAPS (OPTIONAL)
+%% =========================
+
+F2 -->|map search / address lookup| F6 --> X1
+F6 -->|lat/lng chosen| F4
+
+%% =========================
+%% RESPONSE BACK
+%% =========================
+
+D1 --> R2 --> R1 --> S1 --> H2 --> F5 --> U2
+
+%% =========================
+%% AUTH BRANCH (COMMON)
+%% =========================
+
+M1 -->|if protected route| A1{JWT valid?}
+A1 -->|no| H4[401/403\nbackend/internal/middleware/auth.go]
+H4 --> F5 --> U2
+A1 -->|yes| H2
