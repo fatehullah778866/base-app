@@ -38,7 +38,7 @@ COPY --from=builder /tmp/uploads /tmp/uploads
 # Ensure runtime writable locations and sensible defaults for Cloud Run
 # Use SQLite database in /tmp (writable in containers) to allow startup without external DB
 ENV DB_DRIVER=sqlite
-ENV DB_SQLITE_PATH="file:/tmp/app.db?_pragma=foreign_keys(ON)"
+ENV DB_SQLITE_PATH=file:/tmp/app.db?_pragma=foreign_keys(ON)
 # Default listen port and upload dir
 ENV PORT=8080
 ENV UPLOAD_DIR=/tmp/uploads
