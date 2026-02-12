@@ -29,8 +29,16 @@ COPY --from=builder /src/migrations /app/migrations
 COPY --from=builder /src/frontend /app/frontend
 COPY --from=builder /src/uploads /app/uploads
 
-# Default listen port and environment
+# Ensure runtime writable locations and sensible defaults for Cloud Run
+# Use SQLite database in /tmp (writable in containers) to allow startup without external DB
+ENV DB_DRIVER=sqlite
+ENV DB_SQLITE_PATH="file:/tmp/app.db?_pragma=foreign_keys(ON)"
+# Default listen port and upload dir
 ENV PORT=8080
+ENV UPLOAD_DIR=/tmp/uploads
+
+# Ensure upload dir exists and is writable
+RUN mkdir -p /tmp/uploads || true
 EXPOSE 8080
 
 ENTRYPOINT ["/app/server"]
