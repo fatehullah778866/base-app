@@ -185,12 +185,14 @@ func (db *DB) ensureAdminSupport() error {
 		return fmt.Errorf("inspect users schema: %w", err)
 	}
 	defer rows.Close()
+	var foundAny bool
 	for rows.Next() {
 		var cid int
 		var name, ctype string
 		var notnull, pk int
 		var dflt interface{}
 		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk); err == nil {
+			foundAny = true
 			if strings.EqualFold(name, "role") {
 				hasRole = true
 			}
@@ -199,6 +201,11 @@ func (db *DB) ensureAdminSupport() error {
 	if err := rows.Err(); err != nil {
 		return err
 	}
+	// If the users table doesn't exist yet, skip attempting to ALTER it
+	if !foundAny {
+		return nil
+	}
+
 	if !hasRole {
 		if _, err := db.Exec(`ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'`); err != nil {
 			// ignore if concurrently added
