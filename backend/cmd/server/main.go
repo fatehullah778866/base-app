@@ -249,6 +249,11 @@ func main() {
 	router.HandleFunc("/health/live", healthChecker.LivenessCheck).Methods("GET")
 	router.HandleFunc("/metrics", metrics.MetricsHandler).Methods("GET")
 
+	// Favicon - return 204 No Content to prevent 404 errors
+	router.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}).Methods("GET")
+
 	// API v1 routes
 	v1 := router.PathPrefix("/v1").Subrouter()
 
