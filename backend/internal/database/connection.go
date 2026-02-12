@@ -14,6 +14,8 @@ import (
 
 	"go.uber.org/zap"
 
+	"base-app-service/migrations"
+
 	_ "modernc.org/sqlite"
 )
 
@@ -150,7 +152,7 @@ func (db *DB) RunMigrations(migrationsDir string) error {
 				_, _ = db.Exec(`INSERT OR IGNORE INTO migrations_applied (name) VALUES (?)`, filename)
 				continue
 			}
-			return fmt.Errorf("exec migration %s: %w", p, err)
+			return fmt.Errorf("exec migration %s: %w", filename, err)
 		}
 
 		if _, err := db.Exec(`INSERT INTO migrations_applied (name) VALUES (?)`, filename); err != nil {
@@ -248,27 +250,27 @@ type migrationFile struct {
 	content []byte
 }
 
-const embeddedMigrationsDir = "../../migrations"
-
 func listMigrationFiles(dir string) ([]migrationFile, error) {
 	fileMap := map[string][]byte{}
 
-	if entries, err := os.ReadDir(dir); err == nil {
-		for _, entry := range entries {
-			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") {
-				continue
+	if dir != "" {
+		if entries, err := os.ReadDir(dir); err == nil {
+			for _, entry := range entries {
+				if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") {
+					continue
+				}
+				content, err := os.ReadFile(filepath.Join(dir, entry.Name()))
+				if err != nil {
+					return nil, fmt.Errorf("read migration %s: %w", entry.Name(), err)
+				}
+				fileMap[entry.Name()] = content
 			}
-			content, err := os.ReadFile(filepath.Join(dir, entry.Name()))
-			if err != nil {
-				return nil, fmt.Errorf("read migration %s: %w", entry.Name(), err)
-			}
-			fileMap[entry.Name()] = content
+		} else if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return nil, fmt.Errorf("read migrations dir: %w", err)
 		}
-	} else if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return nil, fmt.Errorf("read migrations dir: %w", err)
 	}
 
-	if entries, err := embeddedMigrations.ReadDir(embeddedMigrationsDir); err == nil {
+	if entries, err := migrations.UpFS.ReadDir("."); err == nil {
 		for _, entry := range entries {
 			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") {
 				continue
@@ -276,7 +278,7 @@ func listMigrationFiles(dir string) ([]migrationFile, error) {
 			if _, exists := fileMap[entry.Name()]; exists {
 				continue
 			}
-			content, err := embeddedMigrations.ReadFile(filepath.Join(embeddedMigrationsDir, entry.Name()))
+			content, err := migrations.UpFS.ReadFile(entry.Name())
 			if err != nil {
 				return nil, fmt.Errorf("read embedded migration %s: %w", entry.Name(), err)
 			}
@@ -286,13 +288,13 @@ func listMigrationFiles(dir string) ([]migrationFile, error) {
 		return nil, fmt.Errorf("read embedded migrations: %w", err)
 	}
 
-	var migrations []migrationFile
+	var migrationsSlice []migrationFile
 	for name, content := range fileMap {
-		migrations = append(migrations, migrationFile{name: name, content: content})
+		migrationsSlice = append(migrationsSlice, migrationFile{name: name, content: content})
 	}
-	sort.Slice(migrations, func(i, j int) bool {
-		return migrations[i].name < migrations[j].name
+	sort.Slice(migrationsSlice, func(i, j int) bool {
+		return migrationsSlice[i].name < migrationsSlice[j].name
 	})
 
-	return migrations, nil
+	return migrationsSlice, nil
 }
