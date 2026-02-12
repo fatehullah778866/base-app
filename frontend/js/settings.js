@@ -171,17 +171,22 @@ async function uploadProfilePicture(file) {
         
         const data = await response.json();
         const fileInfo = data.data || data;
-        
-        // Construct the URL - backend serves files at /uploads/
-        let fileUrl = `/uploads/${fileInfo.stored_name}`;
-        if (fileInfo.path && !fileInfo.path.startsWith('/')) {
-            // If path is relative, use it directly
-            fileUrl = `/uploads/${fileInfo.stored_name}`;
-        } else if (fileInfo.path) {
-            // Extract just the filename from full path
-            const pathParts = fileInfo.path.split('/');
-            fileUrl = `/uploads/${pathParts[pathParts.length - 1]}`;
+
+        const storedName = fileInfo.stored_name || fileInfo.storedName;
+        if (!storedName) {
+            throw new Error('Upload response missing stored file name');
         }
+
+        const apiOrigin = (() => {
+            try {
+                return new URL(API_BASE_URL).origin;
+            } catch (err) {
+                console.error('Failed to parse API origin, falling back to current origin', err);
+                return window.location.origin;
+            }
+        })();
+
+        const fileUrl = `${apiOrigin}/uploads/${encodeURIComponent(storedName)}`;
         
         // Update user profile with photo URL
         await api.put('/users/me', {

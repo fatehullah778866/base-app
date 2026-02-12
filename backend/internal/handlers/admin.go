@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	"base-app-service/internal/middleware"
+	"base-app-service/internal/models"
 	"base-app-service/internal/services"
 	"base-app-service/pkg/errors"
 )
@@ -329,6 +330,10 @@ func (h *AdminHandler) ListCRUDEntities(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		errors.RespondError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
 		return
+	}
+
+	if entities == nil {
+		entities = []*models.CustomCRUDEntity{}
 	}
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"success": true,

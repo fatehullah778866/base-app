@@ -3,6 +3,10 @@ let userCRUDs = [];
 let dashboardItems = [];
 let availableTemplates = [];
 
+function ensureArray(value) {
+    return Array.isArray(value) ? value : [];
+}
+
 // Load data on page load
 window.addEventListener('DOMContentLoaded', async () => {
     // Check if user is authenticated
@@ -40,7 +44,8 @@ async function loadTemplates() {
         grid.innerHTML = '<div class="loading">Loading...</div>';
         // Users can access templates via /cruds/templates (protected route, not admin-only)
         const response = await api.get('/cruds/templates?active_only=true');
-        availableTemplates = response.data || response || [];
+        const activeTemplatesPayload = response.data || response;
+        availableTemplates = ensureArray(activeTemplatesPayload);
         // Filter to only active templates
         availableTemplates = availableTemplates.filter(t => t.is_active !== false);
         renderTemplates();
@@ -141,7 +146,8 @@ async function loadCRUDs() {
         grid.innerHTML = '<div class="loading">Loading...</div>';
         // Users create their own CRUDs via /cruds/entities
         const response = await api.get('/cruds/entities');
-        userCRUDs = response.data || response || [];
+        const userCRUDPayload = response.data || response;
+        userCRUDs = ensureArray(userCRUDPayload);
         renderCRUDs();
     } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Failed to load CRUDs';
@@ -190,7 +196,8 @@ async function loadDashboardItems() {
     try {
         grid.innerHTML = '<div class="loading">Loading...</div>';
         const response = await api.get('/dashboard/items');
-        dashboardItems = response.data || response || [];
+        const itemsPayload = response.data || response;
+        dashboardItems = ensureArray(itemsPayload);
         renderDashboardItems();
     } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Failed to load items';
