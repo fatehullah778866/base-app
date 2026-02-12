@@ -18,6 +18,9 @@ RUN go env -w GOPROXY=https://proxy.golang.org,direct \
     && go mod download \
     && go build -ldflags "-s -w" -o /out/server ./cmd/server
 
+# Create runtime upload dir in builder (will be copied into final image)
+RUN mkdir -p /tmp/uploads || true
+
 FROM gcr.io/distroless/static-debian11
 WORKDIR /app
 
@@ -29,6 +32,9 @@ COPY --from=builder /src/migrations /app/migrations
 COPY --from=builder /src/frontend /app/frontend
 COPY --from=builder /src/uploads /app/uploads
 
+# Copy empty/writeable runtime upload dir created in builder into final image
+COPY --from=builder /tmp/uploads /tmp/uploads
+
 # Ensure runtime writable locations and sensible defaults for Cloud Run
 # Use SQLite database in /tmp (writable in containers) to allow startup without external DB
 ENV DB_DRIVER=sqlite
@@ -37,8 +43,6 @@ ENV DB_SQLITE_PATH="file:/tmp/app.db?_pragma=foreign_keys(ON)"
 ENV PORT=8080
 ENV UPLOAD_DIR=/tmp/uploads
 
-# Ensure upload dir exists and is writable
-RUN mkdir -p /tmp/uploads || true
 EXPOSE 8080
 
 ENTRYPOINT ["/app/server"]
