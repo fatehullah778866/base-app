@@ -78,7 +78,7 @@ func main() {
 	themeRepo := repositories.NewThemeRepository(db)
 	logRepo := repositories.NewActivityLogRepository(db)
 	requestRepo := repositories.NewAccessRequestRepository(db)
-	
+
 	// New repositories
 	passwordResetRepo := repositories.NewPasswordResetRepository(db)
 	settingsRepo := repositories.NewSettingsRepository(db)
@@ -114,7 +114,7 @@ func main() {
 	themeService := services.NewThemeService(themeRepo, logger)
 	requestService := services.NewRequestService(requestRepo, logger)
 	adminService := services.NewAdminService(userRepo, authService, activityLogService, requestRepo, logger)
-	
+
 	// New services
 	settingsService := services.NewSettingsService(settingsRepo, userRepo, logger)
 	dashboardService := services.NewDashboardService(dashboardRepo, logger)
@@ -133,21 +133,21 @@ func main() {
 	adminSettingsService := services.NewAdminSettingsService(adminSettingsRepo, logger)
 	customCRUDService := services.NewCustomCRUDService(customCRUDRepo, logger)
 	crudTemplateService := services.NewCRUDTemplateService(crudTemplateRepo, logger)
-	
+
 	// Email service
 	emailConfig := services.GetEmailConfigFromEnv()
 	emailService := services.NewEmailService(emailConfig, logger)
-	
+
 	// File service
 	uploadDir := getEnv("UPLOAD_DIR", "uploads")
 	fileService := services.NewFileService(services.FileUploadConfig{
 		UploadDir: uploadDir,
 		MaxSize:   10 * 1024 * 1024, // 10MB default
 	}, logger)
-	
+
 	// Cache
 	_ = cache.NewInMemoryCache(logger) // Reserved for future use
-	
+
 	// Monitoring
 	metrics := monitoring.NewMetrics(logger)
 	healthChecker := monitoring.NewHealthChecker(db, logger)
@@ -161,7 +161,7 @@ func main() {
 	themeHandler := handlers.NewThemeHandler(themeService, logger)
 	adminHandler := handlers.NewAdminHandler(adminService, adminSettingsService, customCRUDService, crudTemplateService, logger)
 	requestHandler := handlers.NewRequestHandler(requestService, logger)
-	
+
 	// New handlers
 	settingsHandler := handlers.NewSettingsHandler(settingsService, sessionRepo, logger)
 	dashboardHandler := handlers.NewDashboardHandler(dashboardService, logger)
@@ -196,7 +196,7 @@ func main() {
 		})
 	})
 	router.Use(monitoring.MetricsMiddleware(metrics))
-	
+
 	// Rate limiting - more lenient in development, exclude health checks and static files
 	// In development: 10000 req/min, in production: 1000 req/min
 	rateLimit := 1000
@@ -209,24 +209,24 @@ func main() {
 			// Skip rate limiting for health checks, metrics, static files, and frontend routes
 			path := r.URL.Path
 			// Exclude static files and frontend routes from rate limiting
-			if strings.HasPrefix(path, "/health") || 
-			   strings.HasPrefix(path, "/metrics") ||
-			   strings.HasPrefix(path, "/uploads/") ||
-			   strings.HasPrefix(path, "/css/") ||
-			   strings.HasPrefix(path, "/js/") ||
-			   strings.HasPrefix(path, "/images/") ||
-			   strings.HasPrefix(path, "/assets/") ||
-			   path == "/" ||
-			   path == "/dashboard" ||
-			   path == "/admin-dashboard" ||
-			   path == "/settings" ||
-			   strings.HasSuffix(path, ".html") ||
-			   strings.HasSuffix(path, ".css") ||
-			   strings.HasSuffix(path, ".js") ||
-			   strings.HasSuffix(path, ".png") ||
-			   strings.HasSuffix(path, ".jpg") ||
-			   strings.HasSuffix(path, ".ico") ||
-			   strings.HasSuffix(path, ".svg") {
+			if strings.HasPrefix(path, "/health") ||
+				strings.HasPrefix(path, "/metrics") ||
+				strings.HasPrefix(path, "/uploads/") ||
+				strings.HasPrefix(path, "/css/") ||
+				strings.HasPrefix(path, "/js/") ||
+				strings.HasPrefix(path, "/images/") ||
+				strings.HasPrefix(path, "/assets/") ||
+				path == "/" ||
+				path == "/dashboard" ||
+				path == "/admin-dashboard" ||
+				path == "/settings" ||
+				strings.HasSuffix(path, ".html") ||
+				strings.HasSuffix(path, ".css") ||
+				strings.HasSuffix(path, ".js") ||
+				strings.HasSuffix(path, ".png") ||
+				strings.HasSuffix(path, ".jpg") ||
+				strings.HasSuffix(path, ".ico") ||
+				strings.HasSuffix(path, ".svg") {
 				// Skip rate limiting for static files and frontend routes
 				next.ServeHTTP(w, r)
 				return
@@ -240,7 +240,7 @@ func main() {
 			}
 		})
 	})
-	
+
 	router.Use(middleware.ErrorRecovery(logger))
 
 	// Health check endpoints
@@ -261,7 +261,7 @@ func main() {
 	public.HandleFunc("/auth/reset-password", authHandler.ResetPassword).Methods("POST")
 	public.HandleFunc("/admin/login", adminHandler.Login).Methods("POST")
 	public.HandleFunc("/admin/verify-code", adminHandler.VerifyAdminCode).Methods("POST") // Verify admin code
-	public.HandleFunc("/admin/create", adminHandler.CreateAdminPublic).Methods("POST") // Public admin creation with verification
+	public.HandleFunc("/admin/create", adminHandler.CreateAdminPublic).Methods("POST")    // Public admin creation with verification
 
 	// Protected routes
 	protected := v1.PathPrefix("").Subrouter()
@@ -277,7 +277,7 @@ func main() {
 	protected.HandleFunc("/users/me/settings/theme/sync", themeHandler.SyncTheme).Methods("POST")
 	protected.HandleFunc("/requests", requestHandler.Create).Methods("POST")
 	protected.HandleFunc("/requests", requestHandler.ListMine).Methods("GET")
-	
+
 	// Settings routes
 	protected.HandleFunc("/users/me/settings", settingsHandler.GetSettings).Methods("GET")
 	protected.HandleFunc("/users/me/settings/sessions", settingsHandler.GetActiveSessions).Methods("GET")
@@ -292,7 +292,7 @@ func main() {
 	protected.HandleFunc("/users/me/settings/account/deactivate", settingsHandler.DeactivateAccount).Methods("POST")
 	protected.HandleFunc("/users/me/settings/account/reactivate", settingsHandler.ReactivateAccount).Methods("POST")
 	protected.HandleFunc("/users/me/settings/account/delete", settingsHandler.RequestAccountDeletion).Methods("POST")
-	
+
 	// Dashboard routes
 	protected.HandleFunc("/dashboard/items", dashboardHandler.CreateItem).Methods("POST")
 	protected.HandleFunc("/dashboard/items", dashboardHandler.ListItems).Methods("GET")
@@ -300,36 +300,36 @@ func main() {
 	protected.HandleFunc("/dashboard/items/{id}", dashboardHandler.UpdateItem).Methods("PUT")
 	protected.HandleFunc("/dashboard/items/{id}", dashboardHandler.DeleteItem).Methods("DELETE")
 	protected.HandleFunc("/dashboard/items/{id}/archive", dashboardHandler.SoftDeleteItem).Methods("POST")
-	
+
 	// Notification routes
 	protected.HandleFunc("/notifications", notificationHandler.GetNotifications).Methods("GET")
 	protected.HandleFunc("/notifications/unread-count", notificationHandler.GetUnreadCount).Methods("GET")
 	protected.HandleFunc("/notifications/read", notificationHandler.MarkAsRead).Methods("POST")
 	protected.HandleFunc("/notifications/read-all", notificationHandler.MarkAllAsRead).Methods("POST")
 	protected.HandleFunc("/notifications", notificationHandler.DeleteNotification).Methods("DELETE")
-	
+
 	// Messaging routes
 	protected.HandleFunc("/messages", messagingHandler.SendMessage).Methods("POST")
 	protected.HandleFunc("/messages/conversations", messagingHandler.GetConversations).Methods("GET")
 	protected.HandleFunc("/messages", messagingHandler.GetMessages).Methods("GET")
 	protected.HandleFunc("/messages/read", messagingHandler.MarkAsRead).Methods("POST")
 	protected.HandleFunc("/messages/unread-count", messagingHandler.GetUnreadCount).Methods("GET")
-	
+
 	// Account switching routes
 	protected.HandleFunc("/account/switch", accountSwitchHandler.SwitchAccount).Methods("POST")
 	protected.HandleFunc("/account/switch/history", accountSwitchHandler.GetSwitchHistory).Methods("GET")
-	
+
 	// Search routes
 	protected.HandleFunc("/search", searchHandler.Search).Methods("GET", "POST")
 	protected.HandleFunc("/search/history", searchHandler.GetSearchHistory).Methods("GET")
 	protected.HandleFunc("/search/history", searchHandler.ClearSearchHistory).Methods("DELETE")
-	
+
 	// File upload routes
 	protected.HandleFunc("/files/upload/image", fileUploadHandler.UploadImage).Methods("POST")
 	protected.HandleFunc("/files/upload/document", fileUploadHandler.UploadDocument).Methods("POST")
 	protected.HandleFunc("/files/download", fileUploadHandler.DownloadFile).Methods("GET")
 	protected.HandleFunc("/files/delete", fileUploadHandler.DeleteFile).Methods("DELETE")
-	
+
 	// User custom CRUD routes (users can create their own CRUDs)
 	protected.HandleFunc("/cruds/entities", adminHandler.CreateCRUDEntity).Methods("POST")
 	protected.HandleFunc("/cruds/entities", adminHandler.ListCRUDEntities).Methods("GET")
@@ -341,7 +341,7 @@ func main() {
 	protected.HandleFunc("/cruds/data/{id}", adminHandler.GetCRUDData).Methods("GET")
 	protected.HandleFunc("/cruds/data/{id}", adminHandler.UpdateCRUDData).Methods("PUT")
 	protected.HandleFunc("/cruds/data/{id}", adminHandler.DeleteCRUDData).Methods("DELETE")
-	
+
 	// Public template access for users (only active templates)
 	protected.HandleFunc("/cruds/templates", adminHandler.GetCRUDTemplates).Methods("GET")
 	protected.HandleFunc("/cruds/templates/{name}", adminHandler.GetCRUDTemplate).Methods("GET")
@@ -362,11 +362,11 @@ func main() {
 	adminProtected.HandleFunc("/admins", adminHandler.ListAdmins).Methods("GET")
 	adminProtected.HandleFunc("/requests", adminHandler.ListRequests).Methods("GET")
 	adminProtected.HandleFunc("/requests/{id}/status", adminHandler.UpdateRequestStatus).Methods("POST")
-	
+
 	// Admin settings routes
 	adminProtected.HandleFunc("/settings", adminHandler.GetSettings).Methods("GET")
 	adminProtected.HandleFunc("/settings", adminHandler.UpdateSettings).Methods("PUT")
-	
+
 	// Admin custom CRUD routes
 	adminProtected.HandleFunc("/cruds/entities", adminHandler.CreateCRUDEntity).Methods("POST")
 	adminProtected.HandleFunc("/cruds/entities", adminHandler.ListCRUDEntities).Methods("GET")
@@ -378,7 +378,7 @@ func main() {
 	adminProtected.HandleFunc("/cruds/data/{id}", adminHandler.GetCRUDData).Methods("GET")
 	adminProtected.HandleFunc("/cruds/data/{id}", adminHandler.UpdateCRUDData).Methods("PUT")
 	adminProtected.HandleFunc("/cruds/data/{id}", adminHandler.DeleteCRUDData).Methods("DELETE")
-	
+
 	// CRUD Templates routes (for easy entity creation)
 	adminProtected.HandleFunc("/cruds/templates", adminHandler.GetCRUDTemplates).Methods("GET")
 	adminProtected.HandleFunc("/cruds/templates", adminHandler.CreateTemplate).Methods("POST")
@@ -386,7 +386,7 @@ func main() {
 	adminProtected.HandleFunc("/cruds/templates/{name}/create", adminHandler.CreateEntityFromTemplate).Methods("POST")
 	adminProtected.HandleFunc("/cruds/templates/id/{id}", adminHandler.UpdateTemplate).Methods("PUT")
 	adminProtected.HandleFunc("/cruds/templates/id/{id}", adminHandler.DeleteTemplate).Methods("DELETE")
-	
+
 	// Enhanced admin user CRUD routes
 	adminProtected.HandleFunc("/users", adminHandler.CreateUser).Methods("POST")
 	adminProtected.HandleFunc("/users/{id}", adminHandler.UpdateUser).Methods("PUT")
@@ -413,19 +413,19 @@ func main() {
 			}
 		}
 	}
-	
+
 	if frontendDir != "" {
 		if _, err := os.Stat(frontendDir); err == nil {
 			logger.Info("Serving frontend from directory", zap.String("path", frontendDir))
 			// Serve frontend files with clean URLs (no .html extension)
 			staticServer := http.FileServer(http.Dir(frontendDir))
-			
+
 			// Serve static assets (CSS, JS, images) directly without rate limiting
 			router.PathPrefix("/css/").Handler(http.StripPrefix("/", staticServer))
 			router.PathPrefix("/js/").Handler(http.StripPrefix("/", staticServer))
 			router.PathPrefix("/images/").Handler(http.StripPrefix("/", staticServer))
 			router.PathPrefix("/assets/").Handler(http.StripPrefix("/", staticServer))
-			
+
 			// Map clean URLs to HTML files
 			routeMap := map[string]string{
 				"/":                "index.html",
@@ -433,20 +433,20 @@ func main() {
 				"/admin-dashboard": "admin-dashboard.html",
 				"/settings":        "settings.html",
 			}
-			
+
 			// Handle clean URLs and static files (without redirects to avoid loops)
 			router.PathPrefix("/").Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				path := r.URL.Path
-				
+
 				// Don't serve frontend for API routes, health, metrics, or uploads
-				if strings.HasPrefix(path, "/v1/") || 
-				   strings.HasPrefix(path, "/health") || 
-				   strings.HasPrefix(path, "/metrics") ||
-				   strings.HasPrefix(path, "/uploads/") {
+				if strings.HasPrefix(path, "/v1/") ||
+					strings.HasPrefix(path, "/health") ||
+					strings.HasPrefix(path, "/metrics") ||
+					strings.HasPrefix(path, "/uploads/") {
 					http.NotFound(w, r)
 					return
 				}
-				
+
 				// Check if it's a mapped clean URL route - serve the HTML file directly
 				if htmlFile, exists := routeMap[path]; exists {
 					// Create a new request with the HTML file path
@@ -457,7 +457,7 @@ func main() {
 						return
 					}
 				}
-				
+
 				// For root path, serve index.html directly
 				if path == "/" {
 					indexPath := filepath.Join(frontendDir, "index.html")
@@ -466,7 +466,7 @@ func main() {
 						return
 					}
 				}
-				
+
 				// Check if path is a directory or has no extension - try adding .html
 				if !strings.Contains(path, ".") && path != "/" {
 					htmlPath := path + ".html"
@@ -477,7 +477,7 @@ func main() {
 						return
 					}
 				}
-				
+
 				// Check if the requested file exists
 				fullPath := filepath.Join(frontendDir, strings.TrimPrefix(path, "/"))
 				if info, err := os.Stat(fullPath); err == nil {
@@ -494,7 +494,7 @@ func main() {
 						return
 					}
 				}
-				
+
 				// If file doesn't exist and no extension, try .html
 				if !strings.Contains(path, ".") {
 					htmlPath := path + ".html"
@@ -504,7 +504,7 @@ func main() {
 						return
 					}
 				}
-				
+
 				// Try serving as static file (CSS, JS, images, etc.)
 				// Use FileServer but prevent directory listings
 				if strings.Contains(path, ".") {
@@ -548,7 +548,7 @@ func main() {
 
 	// Graceful shutdown
 	go func() {
-		logger.Info("Server starting", zap.String("port", cfg.Server.Port))
+		logger.Info("Server starting", zap.String("port", cfg.Server.Port), zap.String("bind_addr", srv.Addr))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal("Server failed", zap.Error(err))
 		}
