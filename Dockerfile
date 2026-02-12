@@ -9,7 +9,7 @@ ENV CGO_ENABLED=0
 COPY . .
 
 # Ensure expected directories exist so later COPY steps don't fail in Cloud Build
-RUN mkdir -p /src/backend/migrations /src/frontend /src/uploads || true
+RUN mkdir -p /src/migrations /src/frontend /src/uploads || true
 
 WORKDIR /src/backend
 
