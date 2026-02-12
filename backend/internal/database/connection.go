@@ -3,7 +3,9 @@ package database
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -126,23 +128,13 @@ func (db *DB) RunMigrations(migrationsDir string) error {
 		return err
 	}
 
-	files, err := os.ReadDir(migrationsDir)
+	migrationFiles, err := listMigrationFiles(migrationsDir)
 	if err != nil {
-		return fmt.Errorf("read migrations dir: %w", err)
+		return fmt.Errorf("collect migrations: %w", err)
 	}
 
-	var paths []string
-	for _, f := range files {
-		if f.IsDir() || filepath.Ext(f.Name()) != ".sql" || !strings.HasSuffix(f.Name(), ".up.sql") {
-			continue
-		}
-		paths = append(paths, filepath.Join(migrationsDir, f.Name()))
-	}
-
-	sort.Strings(paths)
-
-	for _, p := range paths {
-		filename := filepath.Base(p)
+	for _, mf := range migrationFiles {
+		filename := mf.name
 		var count int
 		if err := db.QueryRow(`SELECT COUNT(1) FROM migrations_applied WHERE name = ?`, filename).Scan(&count); err != nil {
 			return fmt.Errorf("check migration %s: %w", filename, err)
@@ -151,11 +143,7 @@ func (db *DB) RunMigrations(migrationsDir string) error {
 			continue // already applied
 		}
 
-		content, err := os.ReadFile(p)
-		if err != nil {
-			return fmt.Errorf("read migration %s: %w", p, err)
-		}
-		if _, err := db.Exec(string(content)); err != nil {
+		if _, err := db.Exec(string(mf.content)); err != nil {
 			// Skip benign "already exists" errors for idempotency
 			msg := strings.ToLower(err.Error())
 			if strings.Contains(msg, "duplicate column name") || strings.Contains(msg, "already exists") {
@@ -253,4 +241,58 @@ func (db *DB) ensureAdminSupport() error {
 	}
 
 	return nil
+}
+
+type migrationFile struct {
+	name    string
+	content []byte
+}
+
+const embeddedMigrationsDir = "../../migrations"
+
+func listMigrationFiles(dir string) ([]migrationFile, error) {
+	fileMap := map[string][]byte{}
+
+	if entries, err := os.ReadDir(dir); err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") {
+				continue
+			}
+			content, err := os.ReadFile(filepath.Join(dir, entry.Name()))
+			if err != nil {
+				return nil, fmt.Errorf("read migration %s: %w", entry.Name(), err)
+			}
+			fileMap[entry.Name()] = content
+		}
+	} else if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil, fmt.Errorf("read migrations dir: %w", err)
+	}
+
+	if entries, err := embeddedMigrations.ReadDir(embeddedMigrationsDir); err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".up.sql") {
+				continue
+			}
+			if _, exists := fileMap[entry.Name()]; exists {
+				continue
+			}
+			content, err := embeddedMigrations.ReadFile(filepath.Join(embeddedMigrationsDir, entry.Name()))
+			if err != nil {
+				return nil, fmt.Errorf("read embedded migration %s: %w", entry.Name(), err)
+			}
+			fileMap[entry.Name()] = content
+		}
+	} else if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil, fmt.Errorf("read embedded migrations: %w", err)
+	}
+
+	var migrations []migrationFile
+	for name, content := range fileMap {
+		migrations = append(migrations, migrationFile{name: name, content: content})
+	}
+	sort.Slice(migrations, func(i, j int) bool {
+		return migrations[i].name < migrations[j].name
+	})
+
+	return migrations, nil
 }
