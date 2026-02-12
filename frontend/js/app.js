@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8080/v1';
+const API_BASE_URL = window.API_BASE_URL || `${window.location.origin}/v1`;
 
 // API Client
 class API {
