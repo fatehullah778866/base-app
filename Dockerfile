@@ -8,6 +8,9 @@ ENV CGO_ENABLED=0
 # Copy entire project to allow the build to find modules and frontend/migrations
 COPY . .
 
+# Ensure expected directories exist so later COPY steps don't fail in Cloud Build
+RUN mkdir -p /src/backend/migrations /src/frontend /src/uploads || true
+
 WORKDIR /src/backend
 
 # Ensure modules are downloaded and build the server
