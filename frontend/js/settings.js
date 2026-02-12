@@ -150,13 +150,15 @@ async function handleProfilePictureChange(event) {
     await uploadProfilePicture(file);
 }
 
+const API_UPLOAD_BASE = window.API_BASE_URL || `${window.location.origin}/v1`;
+
 async function uploadProfilePicture(file) {
     try {
         const formData = new FormData();
         formData.append('file', file);
         
         const token = localStorage.getItem('access_token');
-        const response = await fetch('http://localhost:8080/v1/files/upload/image', {
+        const response = await fetch(`${API_UPLOAD_BASE}/files/upload/image`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`
