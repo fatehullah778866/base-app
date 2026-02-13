@@ -14,6 +14,7 @@ type Config struct {
 	Webhook   WebhookConfig
 	RateLimit RateLimitConfig
 	Logging   LoggingConfig
+	S3        S3Config
 }
 
 type ServerConfig struct {
@@ -107,6 +108,12 @@ func Load() (*Config, error) {
 			Level:  getEnv("LOG_LEVEL", "info"),
 			Format: getEnv("LOG_FORMAT", "json"),
 		},
+		S3: S3Config{
+			AccessKey: getEnv("AWS_ACCESS_KEY_ID", ""),
+			SecretKey: getEnv("AWS_SECRET_ACCESS_KEY", ""),
+			Region:    getEnv("AWS_REGION", ""),
+			Bucket:    getEnv("AWS_BUCKET_NAME", ""),
+		},
 	}
 
 	return cfg, nil
@@ -154,4 +161,15 @@ func getEnvAsDuration(key string, defaultValue time.Duration) time.Duration {
 		}
 	}
 	return defaultValue
+}
+
+type S3Config struct {
+	AccessKey string
+	SecretKey string
+	Region    string
+	Bucket    string
+}
+
+func (c S3Config) Enabled() bool {
+	return c.AccessKey != "" && c.SecretKey != "" && c.Region != "" && c.Bucket != ""
 }

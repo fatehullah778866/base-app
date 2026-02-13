@@ -143,6 +143,7 @@ func main() {
 	fileService := services.NewFileService(services.FileUploadConfig{
 		UploadDir: uploadDir,
 		MaxSize:   10 * 1024 * 1024, // 10MB default
+		S3:        cfg.S3,
 	}, logger)
 
 	// Cache
