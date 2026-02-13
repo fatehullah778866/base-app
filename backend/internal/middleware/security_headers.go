@@ -26,7 +26,7 @@ func SecurityHeadersMiddleware() func(http.Handler) http.Handler {
 			}
 
 			// Content Security Policy + allow Leaflet assets loaded from unpkg
-			w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' http://localhost:* https://localhost:*")
+			w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' http://localhost:* https://localhost:* https://unpkg.com")
 
 			next.ServeHTTP(w, r)
 		})
